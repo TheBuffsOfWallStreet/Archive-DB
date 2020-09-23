@@ -94,7 +94,7 @@ def downloadPages(segments, folder_name='Bloomberg_Transcripts'):
             segment_data = getSegment(link)
             show = segment_data['metadata']['Title']
             datetime = segment_data['metadata']['Datetime']
-            dirname = f'{folder_name}/{show}/{datetime}.txt'
+            dirname = f'{folder_name}/{show}/{datetime}.json'
             save(json.dumps(segment_data), dirname)
         except Exception as e:
             print(f'WARNING: Failed to fetch segment {i} at {link} due to error {e}')
