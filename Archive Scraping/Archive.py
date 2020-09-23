@@ -18,9 +18,9 @@ def save(text, dirname):
 
 
 '''
-Scrapes snippets from a given link to a segment on archive.org.
-TODO: Get timestamps for each snippet
-TODO: Get metadata for each segment (class: metadata-definition)
+Scrapes date from a given link to a segment on archive.org.
+Saves minute-by-minute snippets and segment metadata.
+Returns a dictionary.
 '''
 def getSegment(link):
     res = requests.get(link)
@@ -47,6 +47,10 @@ def getSegment(link):
     return segment
 
 
+'''
+Makes a request to the Archive scraping API.
+Returns loaded JSON data as a dictionary.
+'''
 def searchSegments(cursor=None, count=100):
     payload = {
         'q': 'TV-BLOOMBERG',
@@ -60,6 +64,9 @@ def searchSegments(cursor=None, count=100):
     return json.loads(res.text)
 
 
+'''
+Uses searchSegments until max_len segments are found or no cursor object is returned (meaning we have fetched all results).
+'''
 def searchAllSegments(max_len=100000):
     cursor = None
     all_segments = []
@@ -77,6 +84,9 @@ def searchAllSegments(max_len=100000):
     return all_segments
 
 
+'''
+Given a list of segment objects from searchAllSegments, fetches data from page and saves to disk in JSON format.
+'''
 def downloadPages(segments, folder_name='Bloomberg_Transcripts'):
     for i, segment in enumerate(segments):
         link = BASE_URL + '/details/' + segment['identifier']
@@ -90,6 +100,9 @@ def downloadPages(segments, folder_name='Bloomberg_Transcripts'):
             print(f'WARNING: Failed to fetch segment {i} at {link} due to error {e}')
 
 
+'''
+Returns a list of filepaths to segment data stored locally on disk.
+'''
 def listLocalSegments(folder_name='Bloomberg_Transcripts'):
     local_segments = []
     for path, subdirs, files in os.walk(folder_name):
