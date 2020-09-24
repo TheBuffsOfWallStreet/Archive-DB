@@ -92,6 +92,7 @@ def downloadPages(segments, folder_name='Bloomberg_Transcripts'):
         link = BASE_URL + '/details/' + segment['identifier']
 
         try:
+            print(f'Fetching Segment {i}', end='\r')
             segment_data = getSegment(link)
             show = segment_data['metadata']['Title']
             datetime = segment_data['metadata']['Datetime']
