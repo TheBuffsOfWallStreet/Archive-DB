@@ -44,6 +44,8 @@ def getSegment(link):
     title = page.find('div', {'class': 'tv-ttl'})
     segment['metadata']['Title'] = title.find('a').text
     segment['metadata']['Datetime'] = title.find('div').text
+    # Get Date
+    segment['metadata']['Date'] = page.find('time').text
     return segment
 
 
