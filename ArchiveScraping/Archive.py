@@ -96,7 +96,6 @@ def downloadPages(segments, folder_name='Bloomberg_Transcripts'):
             show = segment_data['metadata']['Title']
             datetime = segment_data['metadata']['Datetime']
             datetime = datetime.replace(',','').replace(' ', '_').replace(':','')
-            print(datetime)
             dirname = f'{folder_name}/{show}/{datetime}.json'
             save(json.dumps(segment_data), dirname)
         except Exception as e:
