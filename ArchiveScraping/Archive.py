@@ -6,23 +6,23 @@ import json
 BASE_URL = 'https://archive.org'
 
 
-'''
-Saves a given string to a given dirname.
-Creates the directory if it doesn't already exist.
-'''
 def save(text, dirname):
+    '''
+    Saves a given string to a given dirname.
+    Creates the directory if it doesn't already exist.
+    '''
     if not os.path.exists(os.path.dirname(dirname)):
         os.makedirs(os.path.dirname(dirname))
     with open(dirname, 'w') as file:
         file.write(text)
 
 
-'''
-Scrapes date from a given link to a segment on archive.org.
-Saves minute-by-minute snippets and segment metadata.
-Returns a dictionary.
-'''
 def getSegment(link):
+    '''
+    Scrapes date from a given link to a segment on archive.org.
+    Saves minute-by-minute snippets and segment metadata.
+    Returns a dictionary.
+    '''
     res = requests.get(link)
     assert(res.status_code == 200)
     page = soup(res.text)
@@ -44,14 +44,16 @@ def getSegment(link):
     title = page.find('div', {'class': 'tv-ttl'})
     segment['metadata']['Title'] = title.find('a').text
     segment['metadata']['Datetime'] = title.find('div').text
+    # Get Date
+    segment['metadata']['Date'] = page.find('time').text
     return segment
 
 
-'''
-Makes a request to the Archive scraping API.
-Returns loaded JSON data as a dictionary.
-'''
 def searchSegments(cursor=None, count=100):
+    '''
+    Makes a request to the Archive scraping API.
+    Returns loaded JSON data as a dictionary.
+    '''
     payload = {
         'q': 'TV-BLOOMBERG',
         'count': count,
@@ -64,10 +66,10 @@ def searchSegments(cursor=None, count=100):
     return json.loads(res.text)
 
 
-'''
-Uses searchSegments until max_len segments are found or no cursor object is returned (meaning we have fetched all results).
-'''
 def searchAllSegments(max_len=100000):
+    '''
+    Uses searchSegments until max_len segments are found or no cursor object is returned (meaning we have fetched all results).
+    '''
     cursor = None
     all_segments = []
     i = 0
@@ -84,14 +86,15 @@ def searchAllSegments(max_len=100000):
     return all_segments
 
 
-'''
-Given a list of segment objects from searchAllSegments, fetches data from page and saves to disk in JSON format.
-'''
 def downloadPages(segments, folder_name='Bloomberg_Transcripts'):
+    '''
+    Given a list of segment objects from searchAllSegments, fetches data from page and saves to disk in JSON format.
+    '''
     for i, segment in enumerate(segments):
         link = BASE_URL + '/details/' + segment['identifier']
 
         try:
+            print(f'Fetching Segment {i}', end='\r')
             segment_data = getSegment(link)
             show = segment_data['metadata']['Title']
             datetime = segment_data['metadata']['Datetime']
@@ -103,13 +106,20 @@ def downloadPages(segments, folder_name='Bloomberg_Transcripts'):
             print(f'WARNING: Failed to fetch segment {i} at {link} due to error {e}')
 
 
-'''
-Returns a list of filepaths to segment data stored locally on disk.
-'''
-def listLocalSegments(folder_name='Bloomberg_Transcripts'):
-    local_segments = []
+def localSegmentsGenerator(folder_name='Bloomberg_Transcripts'):
+    '''
+    Generates paths to segments stored locally on disk.
+    A generator is more memory efficient when the database gets larger.
+    '''
     for path, subdirs, files in os.walk(folder_name):
-        if path.count(os.sep) == 1:
-            for file in files:
-                local_segments.append(os.path.join(path, file))
-    return local_segments
+        for file in files:
+            yield os.path.join(path, file)
+
+
+def listLocalSegments(folder_name='Bloomberg_Transcripts'):
+    '''
+    Returns a list of filepaths to segment data stored locally on disk.
+    Lists are subscriptable, unlike a generator.
+    Although this can probably be deprecated at some point.
+    '''
+    return [x for x in localSegmentsGenerator(folder_name)]
