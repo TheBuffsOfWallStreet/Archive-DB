@@ -95,6 +95,7 @@ def downloadPages(segments, folder_name='Bloomberg_Transcripts'):
             segment_data = getSegment(link)
             show = segment_data['metadata']['Title']
             datetime = segment_data['metadata']['Datetime']
+            # Format string for Windows file system.
             datetime = datetime.replace(',','').replace(' ', '_').replace(':','')
             dirname = f'{folder_name}/{show}/{datetime}.json'
             save(json.dumps(segment_data), dirname)
