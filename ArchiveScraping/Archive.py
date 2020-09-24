@@ -90,10 +90,13 @@ Given a list of segment objects from searchAllSegments, fetches data from page a
 def downloadPages(segments, folder_name='Bloomberg_Transcripts'):
     for i, segment in enumerate(segments):
         link = BASE_URL + '/details/' + segment['identifier']
+
         try:
             segment_data = getSegment(link)
             show = segment_data['metadata']['Title']
             datetime = segment_data['metadata']['Datetime']
+            datetime = datetime.replace(',','').replace(' ', '_').replace(':','')
+            print(datetime)
             dirname = f'{folder_name}/{show}/{datetime}.json'
             save(json.dumps(segment_data), dirname)
         except Exception as e:
