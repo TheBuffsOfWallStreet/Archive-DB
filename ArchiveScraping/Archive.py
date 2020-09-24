@@ -33,7 +33,7 @@ def getSegment(link):
         caption = column.find('div', {'class': 'snippet'}).text.strip()
         segment['snippets'].append([time, caption])
     # Fetch metadata
-    meta_fields = {'Network', 'Duration', 'Source', 'Tuner'}
+    meta_fields = {'Network', 'Duration', 'Source', 'Tuner', 'Scanned in', 'Tuner'}
     for metadata in page.find_all('dl', {'class': 'metadata-definition'}):
         meta_name = metadata.find('dt').text.strip()
         if meta_name in meta_fields:
@@ -90,11 +90,14 @@ Given a list of segment objects from searchAllSegments, fetches data from page a
 def downloadPages(segments, folder_name='Bloomberg_Transcripts'):
     for i, segment in enumerate(segments):
         link = BASE_URL + '/details/' + segment['identifier']
+
         try:
             segment_data = getSegment(link)
             show = segment_data['metadata']['Title']
             datetime = segment_data['metadata']['Datetime']
-            dirname = f'{folder_name}/{show}/{datetime}.txt'
+            # Format string for Windows file system.
+            datetime = datetime.replace(',','').replace(' ', '_').replace(':','')
+            dirname = f'{folder_name}/{show}/{datetime}.json'
             save(json.dumps(segment_data), dirname)
         except Exception as e:
             print(f'WARNING: Failed to fetch segment {i} at {link} due to error {e}')

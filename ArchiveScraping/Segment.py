@@ -29,3 +29,20 @@ class Segment:
     '''Returns transcript as formatted string including timestamps'''
     def snippets(self):
         return '\n\n'.join([' : '.join(snippet) for snippet in self.content['snippets']])
+
+    '''
+    Skeleton for new method.
+    TODO: Implement function.
+    Should yield the current speaker and the line they said
+    '''
+    def speakerLineGenerator(self):
+        text = self.text()
+        # for speaker in text:
+        #     yield speaker_name, speaker_line
+
+    '''
+    Returns formatted string containing results from speakerLineGenerator()
+    '''
+    def speakerText(self):
+        text = [' : '.join([speaker, line]) for speaker, line in self.speakerLineGenerator()]
+        return '\n\n'.join(text)
