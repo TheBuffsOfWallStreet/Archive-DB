@@ -105,12 +105,19 @@ def downloadPages(segments, folder_name='Bloomberg_Transcripts'):
 
 
 '''
+Generates paths to segments stored locally on disk.
+A generator is more memory efficient when the database gets larger.
+'''
+def localSegmentsGenerator(folder_name='Bloomberg_Transcripts'):
+    for path, subdirs, files in os.walk(folder_name):
+        for file in files:
+            yield os.path.join(path, file)
+
+
+'''
 Returns a list of filepaths to segment data stored locally on disk.
+Lists are subscriptable, unlike a generator.
+Although this can probably be deprecated at some point.
 '''
 def listLocalSegments(folder_name='Bloomberg_Transcripts'):
-    local_segments = []
-    for path, subdirs, files in os.walk(folder_name):
-        if path.count(os.sep) == 1:
-            for file in files:
-                local_segments.append(os.path.join(path, file))
-    return local_segments
+    return [x for x in localSegmentsGenerator(folder_name)]
