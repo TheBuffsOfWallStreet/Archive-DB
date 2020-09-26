@@ -41,9 +41,9 @@ def getSegment(link):
         elif meta_name == 'TOPIC FREQUENCY':
             segment['metadata']['Topics'] = [a.text.strip() for a in metadata.find_all('a')]
     # Get Title
-    title = page.find('div', {'class': 'tv-ttl'})
-    segment['metadata']['Title'] = title.find('a').text
-    segment['metadata']['Datetime'] = title.find('div').text
+    title_text = page.find('div', {'class': 'tv-ttl'}).find_all(text=True)
+    segment['metadata']['Title'] = title_text[0]
+    segment['metadata']['AirDate'] = title_text[1]
     # Get Date
     segment['metadata']['Date'] = page.find('time').text
     return segment
@@ -97,7 +97,7 @@ def downloadPages(segments, folder_name='Bloomberg_Transcripts'):
             print(f'Fetching Segment {i}', end='\r')
             segment_data = getSegment(link)
             show = segment_data['metadata']['Title']
-            datetime = segment_data['metadata']['Datetime']
+            datetime = segment_data['metadata']['AirDate']
             # Format string for Windows file system.
             datetime = datetime.replace(',','').replace(' ', '_').replace(':','')
             dirname = f'{folder_name}/{show}/{datetime}.json'
