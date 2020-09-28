@@ -3,11 +3,12 @@ from textblob import TextBlob
 
 nlp = sp.load("en_core_web_sm")
 
-'''
-Use spacy to search for named entities.
-Return only the entity types of intrest.
-'''
-def getEntities(text, selected_entities = {'ORG', 'PERSON'}):
+
+def getEntities(text, selected_entities={'ORG', 'PERSON'}):
+    '''
+    Use spacy to search for named entities.
+    Return only the entity types of intrest.
+    '''
     doc = nlp(text)
     entities = {}
     for ent in selected_entities:
