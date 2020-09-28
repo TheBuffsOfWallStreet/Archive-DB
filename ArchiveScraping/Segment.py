@@ -32,15 +32,17 @@ class Segment:
 
     def speakerLineGenerator(self):
         '''
-        Skeleton for new method.
-        TODO: Implement function.
-        Should yield the current speaker and the line they said
+        Yields the speaker and line said.
+        If no speaker in transcript return "unknown"
+        TODO be smarter and maybe use NLP to identify the speakers
         '''
         text = self.text()
         
         for t in text.split('>>'):
+            # each line is seperated by a '>>' string
             speaker, line = 'unknown', t
             if len(t.split(':', 1)) == 2 and len(t.split(':',1)[0]) < 20:
+                # if there is a colon in the line and assume that the part before the colon is the speaker
                 speaker, line = t.split(':', 1)
             yield speaker.strip(), line.strip()
 
