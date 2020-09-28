@@ -37,8 +37,12 @@ class Segment:
         Should yield the current speaker and the line they said
         '''
         text = self.text()
-        # for speaker in text:
-        #     yield speaker_name, speaker_line
+        
+        for t in text.split('>>'):
+            speaker, line = 'unknown', t
+            if len(t.split(':', 1)) == 2 and len(t.split(':',1)[0]) < 20:
+                speaker, line = t.split(':', 1)
+            yield speaker.strip(), line.strip()
 
     def speakerText(self):
         '''Returns formatted string containing results from speakerLineGenerator().'''
