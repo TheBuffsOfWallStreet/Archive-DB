@@ -1,6 +1,6 @@
 import pandas as pd
 
-
+'''Strips description column for relevant information'''
 def findSpeaker():
     try:
         df = pd.read_csv('bloomberg.tv.2.csv')
@@ -12,18 +12,27 @@ def findSpeaker():
     speaker = df.apply(removeCompany, axis=1)
 
     # Remove interview and undecessary symbols
-    removalWords = ['Bloomberg TV Interview','BTV Interview','LIVE <GO> Interview',':','-']
+    removalWords = ['Bloomberg TV Interview','BTV Interview','LIVE <GO> Interview', 'LIVE<go> Interview',':','-','CEO', 'CIO', 'President', ',']
     for x in removalWords:
         speaker = speaker.str.replace(x,'')
 
-    # remove things of the nature (113223 MM)
-    df['Speaker'] = speaker.str.replace(r'\([a-z,A-Z,0-9, ]*\)', '')
+    #Remove any strings containing weird characters
+    speaker = speaker.str.replace(r'[^ ]*(\/|&)+[^ ]*', '')
+
+    # remove whitespace things of the nature (113223 MM)
+    speaker = speaker.str.replace(r'\([a-z,A-Z,0-9, ]*\)', '').str.strip()
+    df['Speaker'] = speaker.str.split().str[-2:].str.join(' ')
+
+
+
+
 
 
     #output file to csv
     df.to_csv('bloombergAltered.tv.2.csv')
 
 
+'''Removes company name from description'''
 def removeCompany(x):
     try:
         if(x['Name'] != None):
