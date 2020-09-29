@@ -1,12 +1,11 @@
 import pandas as pd
 
-'''Strips description column for relevant information'''
-def findSpeaker():
-    try:
-        df = pd.read_csv('bloomberg.tv.2.csv')
-    except:
-        print("file could not be found in directory")
 
+def findSpeaker():
+    '''
+    Strips description column for relevant information
+    '''
+    df = pd.read_csv('bloomberg.tv.2.csv')
 
     # apply function below to remove any words matching company from description
     speaker = df.apply(removeCompany, axis=1)
@@ -32,8 +31,12 @@ def findSpeaker():
     df.to_csv('bloombergAltered.tv.2.csv')
 
 
-'''Removes company name from description'''
+
 def removeCompany(x):
+    '''
+    Removes company name from description
+    '''
+
     try:
         if(x['Name'] != None):
             stopWords = set(map(lambda x:x.lower(),x['Name'].split(' ')))
