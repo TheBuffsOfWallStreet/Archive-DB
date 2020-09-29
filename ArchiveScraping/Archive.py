@@ -2,7 +2,11 @@ import requests
 from bs4 import BeautifulSoup as soup
 import os
 import json
+import logging
 
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+logging.basicConfig(filename='logs/Archive.log', level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
 BASE_URL = 'https://archive.org'
 
 
@@ -94,7 +98,7 @@ def downloadPages(segments, folder_name='Bloomberg_Transcripts'):
         link = BASE_URL + '/details/' + segment['identifier']
 
         try:
-            print(f'Fetching Segment {i}', end='\r')
+            print(f'Fetching Segment {i} ({i/len(segments):.2%})', end='\r')
             segment_data = getSegment(link)
             show = segment_data['metadata']['Title']
             datetime = segment_data['metadata']['AirDate']
@@ -103,7 +107,8 @@ def downloadPages(segments, folder_name='Bloomberg_Transcripts'):
             dirname = f'{folder_name}/{show}/{datetime}.json'
             save(json.dumps(segment_data), dirname)
         except Exception as e:
-            print(f'WARNING: Failed to fetch segment {i} at {link} due to error {e}')
+            logging.error(f'Failed to fetch segment {i} at {link}')
+            logging.exception(e)
 
 
 def localSegmentsGenerator(folder_name='Bloomberg_Transcripts'):
