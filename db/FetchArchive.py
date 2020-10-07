@@ -1,6 +1,5 @@
 import requests
 from bs4 import BeautifulSoup as soup
-import json
 
 
 BASE_URL = 'https://archive.org'
@@ -26,7 +25,7 @@ def archiveIndexGenerator():
         }
         res = requests.get(url, payload)
         assert(res.status_code == 200)
-        data = json.loads(res.text)
+        data = res.json()
         for item in data['items']:
             yield item
         cursor = data.get('cursor')
@@ -41,7 +40,7 @@ def getEpisode(identifier):
     Returns a dictionary like {metadata: {}, snippers: {}}
     '''
     link = BASE_URL + '/details/' + identifier
-    res = requests.get(link)
+    res = requests.get(link, timeout=2)
     assert(res.status_code == 200)
     page = soup(res.text)
     segment = {'snippets': [], 'metadata': {}}
