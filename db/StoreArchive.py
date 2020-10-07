@@ -43,9 +43,9 @@ def buildEpisodes():
                 data = future.result()
                 db.ArchiveIndex.update_one({'_id': id}, {'$set': data})
                 num_suceed += 1
-            except Exception as exc:
-                logging.warning(f'Item with id {item["_id"]} threw exception.')
--               logging.exception(e)
+            except Exception as e:
+                logging.warning(f'Item with id {id} threw exception.')
+                logging.exception(e)
                 num_failed += 1
             finally:
                 print(f'{i+1} documents, {num_failed} failed ({num_failed/(i+1):.0%})', end='\r')
