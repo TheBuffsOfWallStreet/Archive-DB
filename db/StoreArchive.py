@@ -54,7 +54,7 @@ def buildEpisodes():
 
 
 if __name__ == '__main__':
-    first_time = False
-    if first_time:
+    build_index = input("Do you want to build the index? (y/n) ")
+    if build_index in 'Yy':
         buildIndex()
     buildEpisodes()
