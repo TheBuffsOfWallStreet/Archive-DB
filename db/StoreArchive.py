@@ -52,10 +52,3 @@ def buildEpisodes():
                 print(f'{i+1} documents, {num_failed} failed ({num_failed/(i+1):.0%})', end='\r')
     print()
     print(f'downloaded {num_suceed} new documents')
-
-
-if __name__ == '__main__':
-    build_index = input("Do you want to build the index? (y/n) ")
-    if build_index in 'Yy':
-        buildIndex()
-    buildEpisodes()
