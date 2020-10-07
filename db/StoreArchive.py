@@ -4,6 +4,7 @@ from datetime import datetime
 from pymongo import MongoClient
 import os
 import logging
+from concurrent import futures
 
 if not os.path.exists('logs'):
     os.makedirs('logs')
@@ -33,17 +34,21 @@ def buildEpisodes():
     num_failed = 0
     num_suceed = 0
     empty_episodes = db.ArchiveIndex.find({'metadata': {'$eq': None}})
-    for i, item in enumerate(empty_episodes):
-        try:
-            episode = fetch.getEpisode(item['_id'])
-            db.ArchiveIndex.update_one({'_id': item['_id']}, {'$set': episode})
-            num_suceed += 1
-        except Exception as e:
-            logging.warning(f'Failed to parse item with id {item["_id"]}')
-            logging.exception(e)
-            num_failed += 1
-        finally:
-            print(f'{i+1} documents, {num_failed} failed ({num_failed/(i+1):.0%})', end='\r')
+
+    with futures.ThreadPoolExecutor(max_workers=8) as executor:
+        future_to_id = {executor.submit(fetch.getEpisode, item['_id']): item['_id'] for item in empty_episodes}
+        for i, future in enumerate(futures.as_completed(future_to_id)):
+            try:
+                id = future_to_id[future]
+                data = future.result()
+                db.ArchiveIndex.update_one({'_id': id}, {'$set': data})
+                num_suceed += 1
+            except Exception as exc:
+                logging.warning(f'Item with id {item["_id"]} threw exception.')
+-               logging.exception(e)
+                num_failed += 1
+            finally:
+                print(f'{i+1} documents, {num_failed} failed ({num_failed/(i+1):.0%})', end='\r')
     print()
     print(f'downloaded {num_suceed} new documents')
 
