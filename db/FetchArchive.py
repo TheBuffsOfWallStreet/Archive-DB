@@ -18,7 +18,7 @@ def archiveIndexGenerator():
         print(f'Fetching segments on page {i}, found {n} segments already')
         # TODO: Update payload['q'] to fetch other shows.
         payload = {
-            'q': 'TV-BLOOMBERG',
+            'q': 'collection:(TV-BLOOMBERG)',
             'count': 10000,  # 10,000 is the max
             'fields': 'date,forumSubject,title,identifier',
             'sorts': 'date',
