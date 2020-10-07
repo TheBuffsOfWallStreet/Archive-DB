@@ -1,4 +1,5 @@
-import FetchArchive as fetch
+# import FetchArchive as fetch
+from db import FetchArchive as fetch
 
 from datetime import datetime
 from pymongo import MongoClient
