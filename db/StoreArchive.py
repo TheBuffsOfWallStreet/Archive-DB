@@ -1,7 +1,6 @@
 # import FetchArchive as fetch
 from db import FetchArchive as fetch
 
-from datetime import datetime
 from pymongo import MongoClient
 import os
 import logging
@@ -21,8 +20,6 @@ def buildIndex():
         # TODO: Add lastModified field.
         item['_id'] = item['identifier']
         key = {'_id': item['_id']}
-        if 'date' in item:  # Clean index date. (str -> datetime)
-            item['datetime'] = datetime.strptime(item['date'], form)
         # Upsert inserts (instead of update) if the item does not exist.
         db.ArchiveIndex.update_one(key, {'$set': item}, upsert=True)
 
