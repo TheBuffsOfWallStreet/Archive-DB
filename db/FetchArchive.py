@@ -71,9 +71,11 @@ def getEpisode(identifier):
 
 def test():
     fields = db.ArchiveIndex.find({'date' :{'$lte':'2013-12-07'}}, {'snippets':1})
+    string2 = fields[11]['snippets'][:3]
     for field in fields:
         teststr = str(field['snippets'][:3])
-        print(teststr)
+        print(enchant.utils.levenshtein(teststr, string2))
+
 
 test()
 
