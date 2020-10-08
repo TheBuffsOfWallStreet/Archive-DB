@@ -1,7 +1,9 @@
 import requests
-import enchant
+# import enchant
+import datetime
 from bs4 import BeautifulSoup as soup
 from pymongo import MongoClient
+
 
 BASE_URL = 'https://archive.org'
 
@@ -53,6 +55,9 @@ def getEpisode(identifier):
             'transcript': column.find('div', {'class': 'snippet'}).text.strip(),
         }
         segment['snippets'].append(snippet)
+
+
+
     # Fetch metadata
     meta_fields = {'Network', 'Duration', 'Source', 'Tuner', 'Scanned in', 'Tuner'}
     for metadata in page.find_all('dl', {'class': 'metadata-definition'}):
@@ -67,16 +72,27 @@ def getEpisode(identifier):
     segment['metadata']['Subtitle'] = title_text[1]
     # Get Date
     segment['metadata']['Date'] = page.find('time').text
-    return segment
 
-def test():
-    fields = db.ArchiveIndex.find({'date' :{'$lte':'2013-12-07'}}, {'snippets':1})
-    string2 = fields[11]['snippets'][:3]
+    # check if duplicate
+    if(checkDuplicate(segment)):
+        return segment
+    else:
+        return None
+
+def checkDuplicate(epi):
+    dateTimeObj = datetime.datetime.strptime('2014-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ')
+    upperBound = epi['metadata']['Date']
+    lowerBound = str(dateTimeObj - dateTimeObj - datetime.timedelta(days = 2))
+
+    fields = db.ArchiveIndex.find({'date' :{'$lte': upperBound, '$gte':lowerBound }}, {'snippets':1})
+    currentEpisode = str(epi['snippets'][0]['transcript']+epi['snippets'][1]['transcript']+epi['snippets'][2]['transcript'])
+
     for field in fields:
-        teststr = str(field['snippets'][:3])
-        string2 = str(field['snippets'][:3])
-        print(enchant.utils.levenshtein(teststr, string2))
+        testEpi = str(field['snippets'][0]['transcript']+field['snippets'][1]['transcript']+field['snippets'][2]['transcript'])
+        diff = enchant.utils.levenshtein(testEpi, currentEpisode)
+        if(diff < 350):
+            return False
 
+    return True
 
-test()
 
