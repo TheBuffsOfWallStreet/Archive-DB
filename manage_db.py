@@ -1,6 +1,5 @@
 if __name__ == '__main__':
-    from db import StoreArchive
-    from db import CleanArchive
+    import db
 
     def myInput(text):
         return input(f'\033[92m {text} \033[0m')
@@ -16,17 +15,17 @@ if __name__ == '__main__':
 
         menu = myInput('Selection:')
         if menu == 'i':
-            StoreArchive.buildIndex()
+            db.buildIndex()
         elif menu == 'd':
             n = myInput('How Many?:')
             if n.isdigit():
-                StoreArchive.buildEpisodes(int(n))
+                db.buildEpisodes(int(n))
             elif n == 'all':
-                StoreArchive.buildEpisodes()
+                db.buildEpisodes()
             else:
                 print(' Invalid Input. Enter number or `all`.')
         elif menu == 'c':
-            CleanArchive.clean()
+            db.clean()
         elif menu == 'q':
             print(' Goodbye!')
         else:
