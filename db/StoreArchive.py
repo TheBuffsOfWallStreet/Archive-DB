@@ -24,7 +24,7 @@ def buildIndex():
         db.ArchiveIndex.update_one(key, {'$set': item}, upsert=True)
 
 
-def buildEpisodes():
+def buildEpisodes(n=None):
     '''
     Searches local index for empty episodes (documents with no metadata).
     Scrapes data and updates document.
@@ -32,6 +32,8 @@ def buildEpisodes():
     num_failed = 0
     num_suceed = 0
     empty_episodes = db.ArchiveIndex.find({'metadata': {'$eq': None}})
+    if n is not None:
+        empty_episodes = empty_episodes.limit(n)
 
     with futures.ThreadPoolExecutor(max_workers=8) as executor:
         future_to_id = {executor.submit(fetch.getEpisode, item['_id']): item['_id'] for item in empty_episodes}
