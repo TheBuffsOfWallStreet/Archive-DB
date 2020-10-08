@@ -1,4 +1,5 @@
 import requests
+import enchant
 from bs4 import BeautifulSoup as soup
 
 
@@ -63,6 +64,7 @@ def getEpisode(identifier):
     title_text = page.find('div', {'class': 'tv-ttl'}).find_all(text=True)
     segment['metadata']['Title'] = title_text[0]
     segment['metadata']['Subtitle'] = title_text[1]
+    print(enchant.utils.levenshtein())
     # Get Date
     segment['metadata']['Date'] = page.find('time').text
     return segment
