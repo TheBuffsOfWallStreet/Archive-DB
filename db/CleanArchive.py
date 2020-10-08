@@ -23,6 +23,7 @@ def perform(cursor, action):
     for episode in cursor:
         try:
             action(episode)
+            updated += 1
         except Exception as e:
             print(e)
             failed += 1
