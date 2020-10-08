@@ -4,3 +4,4 @@ spacy
 textblob
 pandas
 pymongo
+pyenchant

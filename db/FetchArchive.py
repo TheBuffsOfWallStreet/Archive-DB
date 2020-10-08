@@ -70,7 +70,7 @@ def getEpisode(identifier):
     return segment
 
 def test():
-    fields = db.find({'date' :{'$lte':'2013-12-07'}}, {'snippets':1})
+    fields = db.ArchiveIndex.find({'date' :{'$lte':'2013-12-07'}}, {'snippets':1})
     for field in fields:
         teststr = str(field['snippets'][:3])
         print(teststr)
