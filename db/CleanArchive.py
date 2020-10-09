@@ -6,16 +6,25 @@ db = MongoClient('localhost', 27017).WallStreetDB
 
 def cleanIndexDates(episode):
     form = '%Y-%m-%dT%H:%M:%SZ'
-    episode['datetime'] = datetime.strptime(episode['date'], form)
-    db.ArchiveIndex.update_one({'_id': episode['_id']}, {'$set': episode})
+    update = {'$set': {
+        'datetime': datetime.strptime(episode['date'], form)
+    }}
+    db.ArchiveIndex.update_one({'_id': episode['_id']}, update)
 
 
 def cleanEpisodeDuration(episode):
-    metadata = episode['metadata']
-    duration = datetime.strptime(metadata['Duration'], '%H:%M:%S')
+    duration = datetime.strptime(episode['metadata']['Duration'], '%H:%M:%S')
     duration_delta = timedelta(hours=duration.hour, minutes=duration.minute, seconds=duration.second)
-    metadata['Duration_s'] = duration_delta.seconds
-    db.ArchiveIndex.update_one({'_id': episode['_id']}, {'$set': episode})
+    update = {'$set': {
+        'Duration_s': duration_delta.seconds
+    }}
+    if duration_delta.seconds == 0:
+        update['$addToSet'] = {'errors': 'duration_is_0'}
+    db.ArchiveIndex.update_one({'_id': episode['_id']}, update)
+
+
+def markEmpty(episode):
+    db.ArchiveIndex.update_one({'_id': episode['_id']}, {'$addToSet': {'errors': 'transcript_is_empty'}})
 
 
 def perform(cursor, action):
@@ -30,13 +39,52 @@ def perform(cursor, action):
     print(f' {action.__name__} Updated {updated} documents. {failed} failed.')
 
 
-def clean():
+def clean(all=False):
     # Convert index datetime (string) to datetime object.
     print('Cleaning Index Dates')
-    cursor = db.ArchiveIndex.find({'date': {'$exists': True}, 'datetime': {'$exists': False}})
+    if all:
+        query = {}
+    else:
+        query = {'date': {'$exists': True}, 'datetime': {'$exists': False}}
+    cursor = db.ArchiveIndex.find(query)
     perform(cursor, cleanIndexDates)
 
     # Convert Episode Duration (string) to an integer representing seconds.
     print('Cleaning Episode Duration')
-    cursor = db.ArchiveIndex.find({'metadata': {'$exists': True}, 'metadata.Duration_s': {'$exists': False}})
+    if all:
+        query = {}
+    else:
+        query = {'metadata': {'$exists': True}, 'metadata.Duration_s': {'$exists': False}}
+    cursor = db.ArchiveIndex.find(query)
     perform(cursor, cleanEpisodeDuration)
+
+    empty_transcripts = db.ArchiveIndex.aggregate([
+        {
+            '$match': {
+                'snippets': {
+                    '$exists': True
+                },
+            }
+        }, {
+            '$addFields': {
+                'length': {
+                    '$reduce': {
+                        'input': '$snippets.transcript',
+                        'initialValue': 0,
+                        'in': {
+                            '$add': [
+                                {
+                                    '$strLenCP': '$$this'
+                                }, '$$value'
+                            ]
+                        }
+                    }
+                }
+            }
+        }, {
+            '$match': {
+                'length': 0
+            }
+        }
+    ])
+    perform(empty_transcripts, markEmpty)
