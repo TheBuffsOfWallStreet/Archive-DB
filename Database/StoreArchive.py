@@ -1,5 +1,5 @@
 # import FetchArchive as fetch
-from db import FetchArchive as fetch
+from Database import FetchArchive as fetch
 
 from pymongo import MongoClient
 import os
