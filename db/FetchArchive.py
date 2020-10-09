@@ -1,5 +1,5 @@
 import requests
-# import enchant
+import enchant
 import datetime
 from bs4 import BeautifulSoup as soup
 from pymongo import MongoClient
