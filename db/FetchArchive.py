@@ -80,8 +80,8 @@ def getEpisode(identifier):
         return None
 
 def checkDuplicate(epi):
-    dateTimeObj = datetime.datetime.strptime('2014-01-01T00:00:00Z', '%Y-%m-%dT%H:%M:%SZ')
     upperBound = epi['metadata']['Date']
+    dateTimeObj = datetime.datetime.strptime(upperBound, '%Y-%m-%dT%H:%M:%SZ')
     lowerBound = str(dateTimeObj - dateTimeObj - datetime.timedelta(days = 2))
 
     fields = db.ArchiveIndex.find({'date' :{'$lte': upperBound, '$gte':lowerBound }}, {'snippets':1})
@@ -90,6 +90,7 @@ def checkDuplicate(epi):
     for field in fields:
         testEpi = str(field['snippets'][0]['transcript']+field['snippets'][1]['transcript']+field['snippets'][2]['transcript'])
         diff = enchant.utils.levenshtein(testEpi, currentEpisode)
+        print(diff)
         if(diff < 350):
             return False
 
