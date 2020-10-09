@@ -1,5 +1,5 @@
 if __name__ == '__main__':
-    import db
+    import Database
 
     def myInput(text):
         return input(f'\033[92m {text} \033[0m')
@@ -15,17 +15,17 @@ if __name__ == '__main__':
 
         menu = myInput('Selection:')
         if menu == 'i':
-            db.buildIndex()
+            Database.buildIndex()
         elif menu == 'd':
             n = myInput('How Many?:')
             if n.isdigit():
-                db.buildEpisodes(int(n))
+                Database.buildEpisodes(int(n))
             elif n == 'all':
-                db.buildEpisodes()
+                Database.buildEpisodes()
             else:
                 print(' Invalid Input. Enter number or `all`.')
         elif menu == 'c':
-            db.clean()
+            Database.clean()
         elif menu == 'q':
             print(' Goodbye!')
         else:
