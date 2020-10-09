@@ -1,8 +1,14 @@
 from pymongo import MongoClient
 from datetime import datetime, timedelta
+import pytz
+import re
 
 db = MongoClient('localhost', 27017).WallStreetDB
 
+
+def markError(episode, error):
+    '''Adds 'transcript_is_empty' flag to a given episode.'''
+    db.ArchiveIndex.update_one({'_id': episode['_id']}, {'$addToSet': {'errors': error}})
 
 def cleanIndexDates(episode):
     '''episode['date'] (str) -> (datetime object) episode['datetime'].'''
@@ -11,6 +17,33 @@ def cleanIndexDates(episode):
         'datetime': datetime.strptime(episode['date'], form)
     }}
     db.ArchiveIndex.update_one({'_id': episode['_id']}, update)
+
+
+def cleanMetadatDates(episode):
+    subtitle = episode['metadata']['Subtitle']
+    # Match like 'CSPAN July 16, 2009 11:00pm-2:00am EDT'
+    time = '(\d+):(\d+)(\w+)'
+    match = re.match(f'([\w\s]+) (\w+) (\d+), (\d+) {time}-{time} (\w+)', subtitle)
+    if match:
+        network, month, day, year, hour, minute, ampm, hour_end, minute_end, ampm_end, timezone = match.groups()
+
+    else:
+        match = re.match(f' (\w+) (\d+), (\d+) {time}-{time} (\w+)', subtitle)
+        if match:
+            month, day, year, hour, minute, ampm, hour_end, minute_end, ampm_end, timezone = match.groups()
+        else:
+            markError(episode, 'cannot_parse_metadata_date')
+            raise(Exception(f'No match for {subtitle}'))
+    date = datetime.strptime(f'{year} {month} {day} {hour}:{minute} {ampm.upper()}', '%Y %B %d %I:%M %p')
+    if timezone in ['EST', 'EDT']:
+        timezone = 'EST5EDT'
+    elif timezone in ['PST', 'PDT']:
+        timezone = 'PST8PDT'
+    elif timezone in ['CST', 'CDT']:
+        timezone = 'CST6CDT'
+    date = pytz.timezone(timezone).localize(date)
+    date = date.astimezone(pytz.utc)
+    db.ArchiveIndex.update_one({'_id': episode['_id']}, {'$set': {'metadata.Datetime_UTC': date}})
 
 
 def cleanEpisodeDuration(episode):
@@ -57,6 +90,13 @@ def clean(all=False):
     if not all:
         query['datetime'] = {'$exists': False}  # ignore rows that already have datetime fields.
     perform(db.ArchiveIndex.find(query), cleanIndexDates)
+
+    print('Cleaning metadata Dates')
+    query = {'metadata': {'$exists': True}}
+    if not all:
+        query['metadata.Datetime'] = {'$exists': False}
+    cursor = db.ArchiveIndex.find(query)
+    perform(cursor, cleanMetadatDates)
 
     # Convert Episode Duration (string) to an integer representing seconds.
     print('Cleaning Episode Duration')
