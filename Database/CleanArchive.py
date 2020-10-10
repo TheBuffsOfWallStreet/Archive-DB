@@ -1,139 +1,93 @@
 from pymongo import MongoClient
 from datetime import datetime, timedelta
+from collections import Counter
 import pytz
 import re
 
 db = MongoClient('localhost', 27017).WallStreetDB
 
 
-def markError(episode, error):
-    '''Adds 'transcript_is_empty' flag to a given episode.'''
-    db.ArchiveIndex.update_one({'_id': episode['_id']}, {'$addToSet': {'errors': error}})
-
-def cleanIndexDates(episode):
-    '''episode['date'] (str) -> (datetime object) episode['datetime'].'''
-    form = '%Y-%m-%dT%H:%M:%SZ'
-    update = {'$set': {
-        'datetime': datetime.strptime(episode['date'], form)
-    }}
-    db.ArchiveIndex.update_one({'_id': episode['_id']}, update)
-
-
-def cleanMetadatDates(episode):
-    subtitle = episode['metadata']['Subtitle']
-    # Match like 'CSPAN July 16, 2009 11:00pm-2:00am EDT'
-    time = '(\d+):(\d+)(\w+)'
-    match = re.match(f'([\w\s]+) (\w+) (\d+), (\d+) {time}-{time} (\w+)', subtitle)
-    if match:
-        network, month, day, year, hour, minute, ampm, hour_end, minute_end, ampm_end, timezone = match.groups()
-
-    else:
-        match = re.match(f' (\w+) (\d+), (\d+) {time}-{time} (\w+)', subtitle)
-        if match:
-            month, day, year, hour, minute, ampm, hour_end, minute_end, ampm_end, timezone = match.groups()
-        else:
-            markError(episode, 'cannot_parse_metadata_date')
-            raise(Exception(f'No match for {subtitle}'))
-    date = datetime.strptime(f'{year} {month} {day} {hour}:{minute} {ampm.upper()}', '%Y %B %d %I:%M %p')
-    if timezone in ['EST', 'EDT']:
-        timezone = 'EST5EDT'
-    elif timezone in ['PST', 'PDT']:
-        timezone = 'PST8PDT'
-    elif timezone in ['CST', 'CDT']:
-        timezone = 'CST6CDT'
-    date = pytz.timezone(timezone).localize(date)
-    date = date.astimezone(pytz.utc)
-    db.ArchiveIndex.update_one({'_id': episode['_id']}, {'$set': {'metadata.Datetime_UTC': date}})
-
-
-def cleanEpisodeDuration(episode):
-    '''
-    episode['metadata']['Duration'] (str) ->
-        episode['metadata']['Duration_s']
-    If duration is 0, add 'duration_is_0' flag to errors set.
-    '''
-    duration = datetime.strptime(episode['metadata']['Duration'], '%H:%M:%S')
-    duration_delta = timedelta(hours=duration.hour, minutes=duration.minute, seconds=duration.second)
-    update = {'$set': {
-        'metadata.Duration_s': duration_delta.seconds
-    }}
-    if duration_delta.seconds == 0:
-        update['$addToSet'] = {'errors': 'duration_is_0'}
-    db.ArchiveIndex.update_one({'_id': episode['_id']}, update)
-
-
-def markEmpty(episode):
-    '''Adds 'transcript_is_empty' flag to a given episode.'''
-    db.ArchiveIndex.update_one({'_id': episode['_id']}, {'$addToSet': {'errors': 'transcript_is_empty'}})
-
-
-def perform(cursor, action):
-    '''Wraps cleaning funcitons in a try except loop in case of divide by 0 error or date format changes.'''
-    updated, failed = 0, 0
-    for episode in cursor:
-        try:
-            action(episode)
-            updated += 1
-        except Exception as e:
-            print(e)
-            failed += 1
-    print(f' {action.__name__} Updated {updated} documents. {failed} failed.')
-
-
-def clean(all=False):
+def clean():
     '''
     User function to run all cleaning functions.
     if all == False, data that has already been scanned is ignored.
     '''
-    print('Cleaning Index Dates')
-    query = {'date': {'$exists': True}}
-    if not all:
-        query['datetime'] = {'$exists': False}  # ignore rows that already have datetime fields.
-    perform(db.ArchiveIndex.find(query), cleanIndexDates)
+    updates = Counter()  # Track metrics for user
+    failures = Counter()
+    total_docs = db.ArchiveIndex.count_documents({})
+    for i, episode in enumerate(db.ArchiveIndex.find({})):
+        print(f' {i}, {i/total_docs:.1%}', end='\r')  # Progress Bar
+        set_fields = {}  # Fields to update in the object
+        errors = []
+        if 'date' in episode:
+            # Create datetime object from date string scraped from web.
+            try: # Wrapped in try except in case date format changes, causing an exception.
+                form = '%Y-%m-%dT%H:%M:%SZ'
+                set_fields['datetime'] = datetime.strptime(episode['date'], form)
+                updates['datetime'] += 1
+            except:
+                print('failed parsing date from date')
+                failures['datetime'] += 1
+        if 'metadata' in episode:
+            # Parse datetime from Subtitle attrubite. Includes hour, endtime, and timezone.
+            # Stores datetime in UTC time.
+            try:
+                subtitle = episode['metadata']['Subtitle']
+                # Match 'CSPAN July 16, 2009 11:00pm-2:00am EDT'
+                time = '(\d+):(\d+)(\w+)'
+                match = re.match(f'.* (\w+) (\d+), (\d+) {time}-{time} (\w+)', subtitle)
+                month, day, year, hour, minute, ampm, hour_end, minute_end, ampm_end, timezone = match.groups()
+                date = datetime.strptime(f'{year} {month} {day} {hour}:{minute} {ampm.upper()}', '%Y %B %d %I:%M %p')
+                if timezone in ['EST', 'EDT']:
+                    timezone = 'EST5EDT'
+                elif timezone in ['PST', 'PDT']:
+                    timezone = 'PST8PDT'
+                elif timezone in ['CST', 'CDT']:
+                    timezone = 'CST6CDT'
+                date = pytz.timezone(timezone).localize(date)
+                set_fields['metadata.Datetime_UTC'] = date.astimezone(pytz.utc)
+                updates['metadata.Subtitle'] += 1
+            except:
+                print('Failed parsing date from subtitle.')
+                failures['metadata.Subtitle'] += 1
 
-    print('Cleaning metadata Dates')
-    query = {'metadata': {'$exists': True}}
-    if not all:
-        query['metadata.Datetime'] = {'$exists': False}
-    cursor = db.ArchiveIndex.find(query)
-    perform(cursor, cleanMetadatDates)
+            # Parse duration into timedelta object. Convert to seconds and store.
+            try:
+                duration = datetime.strptime(episode['metadata']['Duration'], '%H:%M:%S')
+                duration_delta = timedelta(hours=duration.hour, minutes=duration.minute, seconds=duration.second)
+                set_fields['metadata.Duration_s'] = duration_delta.seconds
+                if duration_delta.seconds == 0:
+                    errors.append('duration_is_0')
+                updates['metadata.Duration'] += 1
+            except:
+                print('Failed parsing timedelta from duration')
+                failures['metadata.Duration'] += 1
 
-    # Convert Episode Duration (string) to an integer representing seconds.
-    print('Cleaning Episode Duration')
-    query = {'metadata': {'$exists': True}}
-    if not all:
-        query['metadata.Duration_s'] = {'$exists': False}
-    perform(db.ArchiveIndex.find(query), cleanEpisodeDuration)
+            # Mark episodes as empty or short according to text length.
+            try:
+                transcript_len = 0
+                for snippet in episode['snippets']:
+                    transcript_len += len(snippet['transcript'])
 
-    # This query was generated with MongoDB Compass.
-    # View intermediate results of the pipeline by pasting into Compass.
-    empty_transcripts = db.ArchiveIndex.aggregate([
-        {
-            '$match': {
-                'snippets': {
-                    '$exists': True
-                },
-            }
-        }, {
-            '$addFields': {
-                'length': {
-                    '$reduce': {
-                        'input': '$snippets.transcript',
-                        'initialValue': 0,
-                        'in': {
-                            '$add': [
-                                {
-                                    '$strLenCP': '$$this'
-                                }, '$$value'
-                            ]
-                        }
-                    }
-                }
-            }
-        }, {
-            '$match': {
-                'length': 0
-            }
+                if transcript_len == 0:
+                    errors.append('transcript_is_empty')
+                if transcript_len < 244:
+                    errors.append('transcript_is_short')
+                updates['transcript_len'] += 1
+            except:
+                print('Failed calculating segment length')
+                failures['transcript_len'] += 1
+
+        # Remove empty transcripts.
+        transaction = {
+            '$pull': {'snippets': {'transcript': ''}}
         }
-    ])
-    perform(empty_transcripts, markEmpty)
+        if errors:
+            set_fields['errors'] = errors
+        else:
+            transaction['$unset'] = {'errors': 1}
+        if set_fields:  # $set cannot be empty.
+            transaction['$set'] = set_fields
+        db.ArchiveIndex.update_one({'_id': episode['_id']}, transaction)
+    print('Updates:', updates)
+    print('Failures:', failures)
