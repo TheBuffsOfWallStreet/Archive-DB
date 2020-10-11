@@ -68,7 +68,7 @@ def clean():
                 transcript_len = 0
                 for snippet in episode['snippets']:
                     transcript_len += len(snippet['transcript'])
-
+                set_fields['transcript_str_length'] = transcript_len
                 if transcript_len == 0:
                     errors.append('transcript_is_empty')
                 if transcript_len < 244:
