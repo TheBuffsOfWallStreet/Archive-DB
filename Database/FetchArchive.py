@@ -23,7 +23,7 @@ def archiveIndexGenerator():
             'sorts': 'date',
             'cursor': cursor,
         }
-        res = requests.get(url, payload)
+        res = requests.get(url, payload, timeout=2)
         assert(res.status_code == 200)
         data = res.json()
         for item in data['items']:
