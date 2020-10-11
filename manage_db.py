@@ -10,6 +10,7 @@ if __name__ == '__main__':
         print('i) Build index')
         print('d) Download episodes')
         print('c) Clean Data')
+        print('v) Create Views')
         print('q) Quit')
         print()
 
@@ -26,6 +27,8 @@ if __name__ == '__main__':
                 print(' Invalid Input. Enter number or `all`.')
         elif menu == 'c':
             Database.clean()
+        elif menu == 'v':
+            Database.createViews()
         elif menu == 'q':
             print(' Goodbye!')
         else:
