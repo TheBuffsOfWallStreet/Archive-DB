@@ -4,6 +4,11 @@ db = MongoClient('localhost', 27017).WallStreetDB
 
 
 def getTermFrequency(term):
+    '''
+    Given a term to search for
+    prints rate of usage per number of characters
+    and the percentage of episodes that the term appears in.
+    '''
     show_length = db.SeriesSummary.find({'num_episodes': {'$gt': 15}})
     shows = {}
     for show in show_length:
@@ -52,7 +57,11 @@ def getTermFrequency(term):
 if __name__ == '__main__':
     import sys
 
-    for term in sys.argv[1:]:
-        print('searching for:', term)
-        getTermFrequency(f'.* {term}.*')
-        print()
+    if(len(sys.argv) < 2):
+        print(' No Input')
+        print(' Usage: python3 TermFrequency.py [Term1] [Term2] [...]')
+    else:
+        for term in sys.argv[1:]:
+            print('searching for:', term)
+            getTermFrequency(f'.* {term}.*')
+            print()

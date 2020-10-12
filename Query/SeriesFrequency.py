@@ -1,44 +1,21 @@
 from pymongo import MongoClient
 import matplotlib.pyplot as plt
+import numpy as np
 from datetime import timedelta
 
 db = MongoClient('localhost', 27017).WallStreetDB
 
-series = db.SeriesSummary.find({}, {'num_episodes': 1}).sort('num_episodes', -1)
-series = [x for x in series]
 
-# Boundries for Buckets
-res = db.CleanedIndex.aggregate([{
-    '$group': {
-        '_id': None,
-        'min': {'$min': '$metadata.Datetime_UTC'},
-        'max': {'$max': '$metadata.Datetime_UTC'}
-    }
-}])
-mn, mx = None, None
-for row in res:
-    print(row)
-    mn = row['min']
-    mx = row['max']
-
-# Buckets
-bins = []
-div = mn - timedelta(days=mn.weekday())
-div.replace(hour=0, minute=0, second=0)
-print(div)
-while div < mx + timedelta(days=7):
-    bins.append(div)
-    div += timedelta(days=7)
-
-
-def getSeriesBuckets(show, bins, matching='.*'):
+def getSeriesBuckets(show, bins, matching=None):
+    '''
+    Runs an aggregation on the database.
+    Given a show, returns bins containing the number of episodes aired each week.
+    '''
+    match = {'metadata.Title': show}
+    if matching:
+        match['snippets.transcript'] = {'$regex': matching}
     res = db.CleanedIndex.aggregate([{
-        '$match': {
-            'metadata.Title': show,
-            'snippets.transcript': {
-                '$regex': matching
-            }
-        }
+        '$match': match
     }, {
         '$bucket': {
             'groupBy': '$metadata.Datetime_UTC',
@@ -60,7 +37,8 @@ def getSeriesBuckets(show, bins, matching='.*'):
     return weeks, counts
 
 
-def generateReport(shows, term=None):
+def generateReport(shows, bins, term=None):
+    '''Queries and Plots frequency information for the first 12 shows in the list.'''
     sharex = None
     for i, show in enumerate(shows):
         sharex = plt.subplot(3, 4, i+1, sharex=sharex, sharey=sharex)
@@ -80,40 +58,69 @@ def generateReport(shows, term=None):
     plt.pause(0.01)
 
 
-selection = None
-page = 0
-term = None
-generateReport(series)
+def menu():
+    '''User program to navigate pages of series.'''
+    series = db.SeriesSummary.find({}, {'num_episodes': 1}).sort('num_episodes', -1)
+    series = [x for x in series]
 
-while selection != 'q':
-    print()
-    print('n) Next page')
-    print('p) Prev page')
-    print('s) Start')
-    print(f'm) Match term (current: {term})')
-    print('q) Quit')
+    # Boundries for Buckets
+    boundary_query = db.CleanedIndex.aggregate([{
+        '$group': {
+            '_id': None,
+            'min': {'$min': '$metadata.Datetime_UTC'},
+            'max': {'$max': '$metadata.Datetime_UTC'}
+        }
+    }])
+    mn, mx = None, None
+    for row in boundary_query:  # There should only be 1 row.
+        mn = row['min']
+        mx = row['max']
+    # Round mn to nearest week start (Sunday)
+    mn -= timedelta(days=mn.weekday())
+    mn.replace(hour=0, minute=0, second=0)
+    bins = np.arange(mn, mx + timedelta(days=7), timedelta(days=7)).tolist()
 
-    selection = input(' Selection:')
+    selection = None
+    page = 0
+    term = None
+    generateReport(series, bins)
 
-    if selection == 'n':
-        page += 12
-        if page >= len(series):
-            page = 0
-        plt.clf()
-        generateReport(series[page:], term)
+    while selection != 'q':
+        print()
+        print('n) Next page')
+        print('p) Prev page')
+        print('f) First page')
+        print(f's) Search term (current: {term})')
+        print('q) Quit')
 
-    if selection == 'p':
-        page -= 12
-        if page > 0:
-            page = 0
-        plt.clf()
-        generateReport(series[page:], term)
-    if selection == 's':
-        page = 0
-        plt.clf()
-        generateReport(series[page:], term)
+        selection = input(' Selection:')
+        generate_report = False
 
-    if selection == 'm':
-        term = input(' Term:')
-        plt.clf()
-        generateReport(series[page:], term)
+        if selection == 'n':  # Next Page
+            page += 12
+            if page >= len(series):
+                page = 0
+            generate_report = True
+
+        if selection == 'p':  # Previous Page
+            page -= 12
+            if page > 0:
+                page = 0
+            generate_report = True
+
+        if selection == 'f':  # First page
+            if page != 0:
+                page = 0
+                generate_report = True
+
+        if selection == 's':  # Search for term
+            term = input(' Term:')
+            generate_report = True
+
+        if generate_report:
+            plt.clf()
+            generateReport(series[page:], bins, term)
+
+
+if __name__ == '__main__':
+    menu()
