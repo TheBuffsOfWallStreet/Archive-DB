@@ -4,6 +4,7 @@ db = MongoClient('localhost', 27017).WallStreetDB
 
 
 def createCleanedIndex():
+    '''CleanedIndex only contains episodes that have been cleaned and have no errors.'''
     if "CleanedIndex" in db.list_collection_names():
         print('CleanedIndex already exists')
         return
@@ -27,6 +28,7 @@ def createCleanedIndex():
 
 
 def createSeriesSummary():
+    '''SeriesSummary stores aggregate information about series like the number of episodes.'''
     if "SeriesSummary" in db.list_collection_names():
         print('SeriesSummary already exists')
         return
@@ -54,5 +56,6 @@ def createSeriesSummary():
 
 
 def createViews():
+    '''Wrapper that calls all view functions.'''
     createCleanedIndex()
     createSeriesSummary()
