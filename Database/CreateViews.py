@@ -14,17 +14,11 @@ def createCleanedIndex():
             "pipeline": [
                 {
                     '$match': {
-                        'metadata': {
-                            '$exists': True
-                        },
-                        'snippets': {
-                            '$exists': True
-                        },
-                        'datetime': {
-                            '$exists': True
-                        },
                         'errors': {
                             '$exists': False
+                        },
+                        'transcript_str_length': {
+                            '$exists': True
                         }
                     }
                 }
