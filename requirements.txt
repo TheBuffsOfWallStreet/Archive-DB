@@ -4,3 +4,5 @@ spacy
 textblob
 pandas
 pymongo
+numpy
+pytz
