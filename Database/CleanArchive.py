@@ -7,15 +7,21 @@ import re
 db = MongoClient('localhost', 27017).WallStreetDB
 
 
-def clean():
+def clean(all=True):
     '''
     User function to run all cleaning functions.
     if all == False, data that has already been scanned is ignored.
     '''
     updates = Counter()  # Track metrics for user
     failures = Counter()
-    total_docs = db.ArchiveIndex.count_documents({})
-    for i, episode in enumerate(db.ArchiveIndex.find({})):
+    query = {}
+    if not all:
+        query = {
+            'transcript_str_length': {'$exists': False},
+            'metadata': {'$exists': True},
+        }
+    total_docs = db.ArchiveIndex.count_documents(query)
+    for i, episode in enumerate(db.ArchiveIndex.find(query)):
         print(f' {i}, {i/total_docs:.1%}', end='\r')  # Progress Bar
         set_fields = {}  # Fields to update in the object
         errors = []

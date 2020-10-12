@@ -26,7 +26,11 @@ if __name__ == '__main__':
             else:
                 print(' Invalid Input. Enter number or `all`.')
         elif menu == 'c':
-            Database.clean()
+            all = myInput('Clean All? (y/n):')
+            if all == 'y':
+                Database.clean()
+            elif all == 'n':
+                Database.clean(all=False)
         elif menu == 'v':
             Database.createViews()
         elif menu == 'q':
