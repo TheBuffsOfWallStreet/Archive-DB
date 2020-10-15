@@ -23,7 +23,7 @@ def archiveIndexGenerator(network='BLOOMBERG'):
             'sorts': 'date',
             'cursor': cursor,
         }
-        res = requests.get(url, payload)
+        res = requests.get(url, payload, timeout=10)
         assert(res.status_code == 200)
         data = res.json()
         for item in data['items']:
@@ -40,7 +40,7 @@ def getEpisode(identifier):
     Returns a dictionary like {metadata: {}, snippers: {}}
     '''
     link = BASE_URL + '/details/' + identifier
-    res = requests.get(link)
+    res = requests.get(link, timeout=10)
     assert(res.status_code == 200)
     page = soup(res.text)
     segment = {'snippets': [], 'metadata': {}}
