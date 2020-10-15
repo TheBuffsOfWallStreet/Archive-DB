@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup as soup
 BASE_URL = 'https://archive.org'
 
 
-def archiveIndexGenerator(network='BLOOMBERG'):
+def archiveIndexGenerator(network):
     '''
     Fetches the index from Archive.org.
     Contains identifiers used to construct links to episode pages.
@@ -17,7 +17,7 @@ def archiveIndexGenerator(network='BLOOMBERG'):
         print(f'Fetching segments on page {i}, found {n} segments already')
         # TODO: Update payload['q'] to fetch other shows.
         payload = {
-            'q': 'collection:(TV-{})'.format(network),
+            'q': f'collection:(TV-{network})',
             'count': 10000,  # 10,000 is the max
             'fields': 'date,forumSubject,title,identifier',
             'sorts': 'date',
