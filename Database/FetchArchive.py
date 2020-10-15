@@ -80,6 +80,7 @@ def checkDuplicate(epi,identifier):
         currentEpisode+=str(snip['transcript'])
     for field in fields:
         compareEpisode = ''
+        cosine = 0
         try:
             for snip in field['snippets']:
                 compareEpisode+=str(snip['transcript'])
@@ -104,12 +105,12 @@ def checkDuplicate(epi,identifier):
             for i in range(len(vector)):
                 c+=l1[i]*l2[i]
             cosine = c/float((sum(l1)*sum(l2))**.5)
-            if(float(cosine) > float(.5)):
-                print(field['metadata']['Title'])
-                print("BIG ISSUE")
-                print(field['title'])
-                print(cosine)
-                return False
+            print(cosine)
+            threshold = 0.3
+
         except Exception as e:
-            x = 1
+            continue
+        if cosine > 0.4:
+            return False
+
     return True
