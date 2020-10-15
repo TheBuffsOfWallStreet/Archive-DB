@@ -17,7 +17,7 @@ def clean(all=True):
     '''
     updates = Counter()  # Track metrics for user
     failures = Counter()
-    duplicates = 0
+    duplicates = Counter()
     query = {}
     if not all:
         query = {
@@ -31,7 +31,7 @@ def clean(all=True):
         errors = []
 
         duplicate = checkDuplicate(episode)
-        print(duplicate)
+
 
         if 'date' in episode:
             # Create datetime object from date string scraped from web.
@@ -98,6 +98,7 @@ def clean(all=True):
         }
         if duplicate < 1.0:
             set_fields['duplicate'] = True
+            duplicates['metadata.Subtitle'] += 1
         else:
             set_fields['duplicate'] = False
         if errors:
