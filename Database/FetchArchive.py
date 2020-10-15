@@ -25,7 +25,7 @@ def archiveIndexGenerator():
             'sorts': 'date',
             'cursor': cursor,
         }
-        res = requests.get(url, payload, timeout=2)
+        res = requests.get(url, payload)
         assert(res.status_code == 200)
         data = res.json()
         for item in data['items']:
@@ -73,38 +73,43 @@ def getEpisode(identifier):
 def checkDuplicate(epi,identifier):
     upperBound = db.ArchiveIndex.find({'identifier' : identifier})[0]['date']
     dateTimeObj = datetime.datetime.strptime(upperBound, '%Y-%m-%dT%H:%M:%SZ')
-    lowerBound = str(dateTimeObj - dateTimeObj - datetime.timedelta(days = 2))
+    lowerBound = str(dateTimeObj - dateTimeObj - datetime.timedelta(days = 1))
     fields = db.ArchiveIndex.find({'date' :{'$lte': upperBound, '$gte':lowerBound }}, {'snippets':1})
     currentEpisode = ''
     for snip in epi['snippets']:
-	    currentEpisode+=str(snip['transcript'])
+        currentEpisode+=str(snip['transcript'])
     for field in fields:
         compareEpisode = ''
-        for snip in field['snippets']:
-            compareEpisode+=str(snip['transcript'])
-        xList = word_tokenize(currentEpisode)
-        yList = word_tokenize(compareEpisode)
-        sw = stopwords.words('english')
-        l1 = []
-        l2 = []
-        xSet = {w for w in xList if not w in sw}
-        ySet = {w for w in yList if not w in sw}
-        vector = xSet.union(ySet)
-        for w in vector:
-            if(w in xSet):
-                l1.append(1)
-            else:
-                l1.append(0)
-            if(w in ySet):
-                l2.append(1)
-            else:
-                l2.append(0)
-            c = 0
-        for i in range(len(vector)):
-            c+=l1[i]*l2[i]
-        cosine = c/float((sum(l1)*sum(l2))**.5)
-        print(cosine)
-        if(cosine > 0.8):
-            print(field['metadata']['Title'])
-            return False
+        try:
+            for snip in field['snippets']:
+                compareEpisode+=str(snip['transcript'])
+            xList = word_tokenize(currentEpisode)
+            yList = word_tokenize(compareEpisode)
+            sw = stopwords.words('english')
+            l1 = []
+            l2 = []
+            xSet = {w for w in xList if not w in sw}
+            ySet = {w for w in yList if not w in sw}
+            vector = xSet.union(ySet)
+            for w in vector:
+                if(w in xSet):
+                    l1.append(1)
+                else:
+                    l1.append(0)
+                if(w in ySet):
+                    l2.append(1)
+                else:
+                    l2.append(0)
+                c = 0
+            for i in range(len(vector)):
+                c+=l1[i]*l2[i]
+            cosine = c/float((sum(l1)*sum(l2))**.5)
+            if(float(cosine) > float(.5)):
+                print(field['metadata']['Title'])
+                print("BIG ISSUE")
+                print(field['title'])
+                print(cosine)
+                return False
+        except Exception as e:
+            x = 1
     return True
