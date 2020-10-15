@@ -3,6 +3,9 @@ from datetime import datetime, timedelta
 from collections import Counter
 import pytz
 import re
+import datetime
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
 
 db = MongoClient('localhost', 27017).WallStreetDB
 
@@ -14,20 +17,25 @@ def clean(all=True):
     '''
     updates = Counter()  # Track metrics for user
     failures = Counter()
+    duplicates = 0
     query = {}
     if not all:
         query = {
-            'transcript_str_length': {'$exists': False},
+            # 'transcript_str_length': {'$exists': False},
             'metadata': {'$exists': True},
         }
     total_docs = db.ArchiveIndex.count_documents(query)
     for i, episode in enumerate(db.ArchiveIndex.find(query)):
-        print(f' {i}, {i/total_docs:.1%}', end='\r')  # Progress Bar
+        print(f' {i}, {i / total_docs:.1%}', end='\r')  # Progress Bar
         set_fields = {}  # Fields to update in the object
         errors = []
+
+        duplicate = checkDuplicate(episode)
+        print(duplicate)
+
         if 'date' in episode:
             # Create datetime object from date string scraped from web.
-            try: # Wrapped in try except in case date format changes, causing an exception.
+            try:  # Wrapped in try except in case date format changes, causing an exception.
                 form = '%Y-%m-%dT%H:%M:%SZ'
                 set_fields['datetime'] = datetime.strptime(episode['date'], form)
                 updates['datetime'] += 1
@@ -88,12 +96,67 @@ def clean(all=True):
         transaction = {
             '$pull': {'snippets': {'transcript': ''}}
         }
+        if duplicate < 1.0:
+            set_fields['duplicate'] = True
+        else:
+            set_fields['duplicate'] = False
         if errors:
             set_fields['errors'] = errors
         else:
             transaction['$unset'] = {'errors': 1}
         if set_fields:  # $set cannot be empty.
             transaction['$set'] = set_fields
+
+
+
         db.ArchiveIndex.update_one({'_id': episode['_id']}, transaction)
     print('Updates:', updates)
     print('Failures:', failures)
+    print('Duplicates', duplicates)
+
+
+def checkDuplicate(epi):
+    upperBound = db.ArchiveIndex.find({'identifier': epi['identifier']})[0]['date']
+    dateTimeObj = datetime.datetime.strptime(upperBound, '%Y-%m-%dT%H:%M:%SZ')
+    lowerBound = str(dateTimeObj - dateTimeObj - datetime.timedelta(days=1))
+    fields = db.ArchiveIndex.find({'date': {'$lte': upperBound, '$gte': lowerBound}}, {'snippets': 1})
+    currentEpisode = ''
+    for snip in epi['snippets']:
+        currentEpisode += str(snip['transcript'])
+    for field in fields:
+        compareEpisode = ''
+        cosine = 0
+        try:
+            for snip in field['snippets']:
+                compareEpisode += str(snip['transcript'])
+            xList = word_tokenize(currentEpisode)
+            yList = word_tokenize(compareEpisode)
+            sw = stopwords.words('english')
+            l1 = []
+            l2 = []
+            xSet = {w for w in xList if not w in sw}
+            ySet = {w for w in yList if not w in sw}
+            vector = xSet.union(ySet)
+            for w in vector:
+                if (w in xSet):
+                    l1.append(1)
+                else:
+                    l1.append(0)
+                if (w in ySet):
+                    l2.append(1)
+                else:
+                    l2.append(0)
+                c = 0
+            for i in range(len(vector)):
+                c += l1[i] * l2[i]
+            cosine = c / float((sum(l1) * sum(l2)) ** .5)
+            # print(cosine)
+
+
+        except Exception as e:
+            x =1
+        if cosine > 0.5:
+            print(cosine)
+            return cosine
+
+    return -1
