@@ -13,10 +13,10 @@ logging.basicConfig(filename='logs/StoreArchive.log', level=logging.INFO, format
 db = MongoClient('localhost', 27017).WallStreetDB
 
 
-def buildIndex():
+def buildIndex(network='BLOOMBERG'):
     '''Gets, cleans and stores data from archiveIndexGenerator().'''
     form = '%Y-%m-%dT%H:%M:%SZ'
-    for item in fetch.archiveIndexGenerator():
+    for item in fetch.archiveIndexGenerator(network):
         # TODO: Add lastModified field.
         item['_id'] = item['identifier']
         key = {'_id': item['_id']}
