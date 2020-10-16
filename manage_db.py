@@ -16,7 +16,24 @@ if __name__ == '__main__':
 
         menu = myInput('Selection:')
         if menu == 'i':
-            Database.buildIndex()
+            print('Suggested networks:')
+            print('b) BLOOMBERG')
+            print('c) CNBC')
+            print('f) FOX BUSINESS')
+            print('o) Other')
+            network_choice = myInput('Network?:')
+            if network_choice == 'b':
+                network = 'BLOOMBERG'
+            elif network_choice == 'f':
+                network = 'FBC'
+            elif network_choice == 'c':
+                network = 'CNBC'
+            elif network_choice == 'o':
+                network = myInput('Other Network?:')
+            else:
+                print('Invalid Input')
+                continue
+            Database.buildIndex(network)
         elif menu == 'd':
             n = myInput('How Many?:')
             if n.isdigit():
