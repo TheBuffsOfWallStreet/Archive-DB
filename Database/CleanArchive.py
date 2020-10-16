@@ -156,9 +156,9 @@ def checkDuplicate(epi):
 
 
         except Exception as e:
-            x =1
+            print('There was an issue comparing two of the transcripts')
         if cosine > 0.5:
             print(cosine)
             return cosine
 
-    return -1
+    return 1
