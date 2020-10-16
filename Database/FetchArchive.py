@@ -1,8 +1,7 @@
 import requests
-from pymongo import MongoClient
 from bs4 import BeautifulSoup as soup
 
-db = MongoClient('localhost', 27017).WallStreetDB
+
 BASE_URL = 'https://archive.org'
 def archiveIndexGenerator():
     '''
