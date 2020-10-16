@@ -97,6 +97,7 @@ def clean(all=True):
             '$pull': {'snippets': {'transcript': ''}}
         }
         if duplicate < 1.0:
+            print('Duplicate found')
             set_fields['duplicate'] = True
             duplicates['metadata.Subtitle'] += 1
         else:
