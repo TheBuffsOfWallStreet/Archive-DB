@@ -21,7 +21,7 @@ def clean(all=True):
     query = {}
     if not all:
         query = {
-            # 'transcript_str_length': {'$exists': False},
+            'transcript_str_length': {'$exists': False},
             'metadata': {'$exists': True},
         }
     total_docs = db.ArchiveIndex.count_documents(query)
