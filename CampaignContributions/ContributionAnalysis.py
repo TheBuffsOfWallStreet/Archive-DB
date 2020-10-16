@@ -22,7 +22,7 @@ def importCandidates(filepath):
     
     with open('candidates.json', 'w') as f:
         json.dump(candidates, f)
-        
+
 
 def countOrgContributions(record_file, contributions_file='contributions.json'):
     '''
@@ -56,3 +56,32 @@ def countOrgContributions(record_file, contributions_file='contributions.json'):
     
     with open(contributions_file, 'w') as f:
         json.dump(contributions, f)
+
+
+def orgPartyAnalysis(org, contributions_json, candidate_json):
+    '''
+    Takes in a organization name, contribution json, and candidate json
+    Returns the party contribution distributions
+    '''
+    with open(contributions_json, 'r') as f:
+        contributions = json.load(f)
+    with open(candidate_json, 'r') as f:
+        candidates = json.load(f)
+    
+    party_dist = {}
+    org = org.upper()
+    orgs_found = []
+
+    for name in contributions:
+        if re.search('^'+org+'[\s,.]*', name): # This may not always be right TODO improve this
+            orgs_found.append(name)
+            for cand_id in contributions[name]:
+                if cand_id in candidates:
+                    party = candidates[cand_id].get('party', 'N/A')
+                    if party not in party_dist:
+                        party_dist[party] = 0
+                    party_dist[party] += contributions[name].get(cand_id, 0)
+                else:
+                    print('Candidate ID not found: {}'.format(cand_id))
+
+    return party_dist, orgs_found
