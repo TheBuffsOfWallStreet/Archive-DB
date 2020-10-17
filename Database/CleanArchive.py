@@ -21,7 +21,7 @@ def clean(all=True):
     query = {}
     if not all:
         query = {
-            'transcript_str_length': {'$exists': False},
+            # 'transcript_str_length': {'$exists': False},
             'metadata': {'$exists': True},
         }
     total_docs = db.ArchiveIndex.count_documents(query)
@@ -29,9 +29,6 @@ def clean(all=True):
         print(f' {i}, {i / total_docs:.1%}', end='\r')  # Progress Bar
         set_fields = {}  # Fields to update in the object
         errors = []
-
-        duplicate = checkDuplicate(episode)
-
 
         if 'date' in episode:
             # Create datetime object from date string scraped from web.
@@ -96,20 +93,20 @@ def clean(all=True):
         transaction = {
             '$pull': {'snippets': {'transcript': ''}}
         }
+
+        duplicate, show = checkDuplicate(episode)
+
         if duplicate < 1.0:
             print('Duplicate found')
-            set_fields['duplicate'] = True
-            duplicates['metadata.Subtitle'] += 1
-        else:
-            set_fields['duplicate'] = False
+            errors.append('transcript_is_duplicate')
+            set_fields['duplicateOf'] = show
+            duplicates['metadata.Title'] += 1
         if errors:
             set_fields['errors'] = errors
         else:
             transaction['$unset'] = {'errors': 1}
         if set_fields:  # $set cannot be empty.
             transaction['$set'] = set_fields
-
-
 
         db.ArchiveIndex.update_one({'_id': episode['_id']}, transaction)
     print('Updates:', updates)
@@ -118,22 +115,24 @@ def clean(all=True):
 
 
 def checkDuplicate(epi):
-    upperBound = db.ArchiveIndex.find({'identifier': epi['identifier']})[0]['date']
+    upperBound = db.ArchiveIndex.find_one({'_id': epi['_id']})['date']
     dateTimeObj = datetime.datetime.strptime(upperBound, '%Y-%m-%dT%H:%M:%SZ')
-    lowerBound = str(dateTimeObj - dateTimeObj - datetime.timedelta(days=1))
+    lowerBound = str(dateTimeObj - datetime.timedelta(days=1))
     fields = db.ArchiveIndex.find({'date': {'$lte': upperBound, '$gte': lowerBound}}, {'snippets': 1})
     currentEpisode = ''
     for snip in epi['snippets']:
         currentEpisode += str(snip['transcript'])
+
+    xList = word_tokenize(currentEpisode)
+    sw = stopwords.words('english')
+
     for field in fields:
         compareEpisode = ''
         cosine = 0
         try:
             for snip in field['snippets']:
                 compareEpisode += str(snip['transcript'])
-            xList = word_tokenize(currentEpisode)
             yList = word_tokenize(compareEpisode)
-            sw = stopwords.words('english')
             l1 = []
             l2 = []
             xSet = {w for w in xList if not w in sw}
@@ -152,13 +151,11 @@ def checkDuplicate(epi):
             for i in range(len(vector)):
                 c += l1[i] * l2[i]
             cosine = c / float((sum(l1) * sum(l2)) ** .5)
-            # print(cosine)
-
 
         except Exception as e:
-            print('There was an issue comparing two of the transcripts')
+            print(e)
         if cosine > 0.5:
             print(cosine)
-            return cosine
+            return cosine, field['_id']
 
-    return 1
+    return 1, None

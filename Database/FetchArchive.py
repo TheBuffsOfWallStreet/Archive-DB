@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup as soup
 
 
 BASE_URL = 'https://archive.org'
+
+
 def archiveIndexGenerator():
     '''
     Fetches the index from Archive.org.
@@ -30,6 +32,8 @@ def archiveIndexGenerator():
         i += 1
         n += len(data['items'])
     print(f'Found {n} segments')
+
+
 def getEpisode(identifier):
     '''
     Makes web requests to archive.org. Scrapes episode data.
