@@ -117,7 +117,7 @@ def clean(all=True):
 def checkDuplicate(epi):
     upperBound = db.ArchiveIndex.find_one({'_id': epi['_id']})['date']
     dateTimeObj = datetime.datetime.strptime(upperBound, '%Y-%m-%dT%H:%M:%SZ')
-    lowerBound = str(dateTimeObj - datetime.timedelta(days=1))
+    lowerBound = str(dateTimeObj - datetime.timedelta(days=2))
     fields = db.ArchiveIndex.find({'date': {'$lte': upperBound, '$gte': lowerBound}}, {'snippets': 1})
     currentEpisode = ''
     for snip in epi['snippets']:
