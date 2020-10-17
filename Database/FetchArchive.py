@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup as soup
 BASE_URL = 'https://archive.org'
 
 
-def archiveIndexGenerator():
+def archiveIndexGenerator(network):
     '''
     Fetches the index from Archive.org.
     Contains identifiers used to construct links to episode pages.
@@ -17,13 +17,14 @@ def archiveIndexGenerator():
         print(f'Fetching segments on page {i}, found {n} segments already')
         # TODO: Update payload['q'] to fetch other shows.
         payload = {
-            'q': 'collection:(TV-BLOOMBERG)',
+            'q': f'collection:(TV-{network})',
             'count': 10000,  # 10,000 is the max
             'fields': 'date,forumSubject,title,identifier',
             'sorts': 'date',
             'cursor': cursor,
         }
-        res = requests.get(url, payload)
+
+        res = requests.get(url, payload, timeout=10)
         assert(res.status_code == 200)
         data = res.json()
         for item in data['items']:
@@ -40,7 +41,7 @@ def getEpisode(identifier):
     Returns a dictionary like {metadata: {}, snippers: {}}
     '''
     link = BASE_URL + '/details/' + identifier
-    res = requests.get(link, timeout=2)
+    res = requests.get(link, timeout=10)
     assert(res.status_code == 200)
     page = soup(res.text)
     segment = {'snippets': [], 'metadata': {}}
