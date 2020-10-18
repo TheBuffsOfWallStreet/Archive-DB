@@ -1,31 +1,38 @@
 from pymongo import MongoClient
+from pymemcache.client.base import Client as CacheClient
 from datetime import timedelta
 from nltk import corpus
 from nltk.tokenize import word_tokenize
 
 db = MongoClient('localhost', 27017).WallStreetDB
+cache = CacheClient('localhost')
+
 stopwords = set(corpus.stopwords.words('english'))
 
+cacheMisses = {} # TODO: remove debug tool.
 
 def getBag(episode, n_gram=2):
     '''
     Returns a bag of n_grams for the given episodes transcript.
     Caches results to the database for quick re-access.
     '''
-    cached = db.WordsCache.find_one({'_id': episode['_id'], 'n_gram': n_gram})
+    cached = cache.get(episode['_id'])
     if cached:
-        return set(cached['bag'])
+        return set(cached)
     else:
+        # TODO: Remove debug tool
+        if episode['_id'] in cacheMisses:
+            cacheMisses[episode['_id']] += 1
+            print(f'cache miss {cacheMisses[episode["_id"]]} {episode["_id"]}')
+        else:
+            cacheMisses[episode['_id']] = 1
+
         text = ' '.join(x['transcript'] for x in episode['snippets'])
         tokens = [w for w in word_tokenize(text) if w not in stopwords]
         bag = set()
         for i in range(n_gram, len(tokens)):
             bag.add(' '.join(tokens[i - n_gram: i]))
-        db.WordsCache.insert({
-            '_id': episode['_id'],
-            'bag': list(bag),
-            'n_gram': n_gram,
-        })
+        cache.set(episode['_id'], str(bag).encode("utf-8"), 60)
         return bag
 
 
@@ -59,7 +66,7 @@ def cleanDuplicates():
     '''
     query = {'duplicates': {'$exists': False}}
     total_docs = db.ArchiveIndex.count_documents(query)
-    for i, episode in enumerate(db.CleanedIndex.find(query)):
+    for i, episode in enumerate(db.CleanedIndex.find(query).sort('metadata.Datetime_UTC')):
         print(f' {i}, {i/total_docs:.2%}', end='\r')
         duplicates = findDuplicate((episode))
         db.ArchiveIndex.update_one({'_id': episode['_id']}, {'$set': {'duplicate_of': duplicates}})
