@@ -1,10 +1,11 @@
-from pymongo import MongoClient
+from Database.Connect import connect
+
 from datetime import datetime, timedelta
 from collections import Counter
 import pytz
 import re
 
-db = MongoClient('localhost', 27017).WallStreetDB
+db = connect()
 
 
 def clean(all=True):
