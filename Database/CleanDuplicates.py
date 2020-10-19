@@ -7,17 +7,20 @@ from nltk.tokenize import word_tokenize
 db = MongoClient('localhost', 27017).WallStreetDB
 stopwords = set(corpus.stopwords.words('english'))
 
+
 def nGrams(text, n=2):
+    '''Returns a set of n_gram tokens for the given string of text.'''
     tokens = [w for w in word_tokenize(text) if w not in stopwords]
     bag = set()
-    for i in range(n, len(tokens)+1):
+    for i in range(n, len(tokens) + 1):
         bag.add(' '.join(tokens[i - n: i]))
     return bag
+
 
 cacheMisses = {}  # TODO: remove debug tool.
 
 
-@lru_cache(maxsize=64, typed=False)
+@lru_cache(maxsize=128, typed=False)
 def getBag(episode_id, n_gram=2):
     '''
     Returns a bag of n_grams for the given episodes transcript.
@@ -40,7 +43,6 @@ def jaccardSimilarity(bag1, bag2):
 
 
 def cosineSimilarity(bag1, bag2):
-    print(len(bag1), len(bag2))
     mags = (len(bag1) * len(bag2))**.5
     return len(bag1.intersection(bag2)) / (mags + 1)
 
@@ -50,7 +52,6 @@ def findDuplicate(episode, threshold=0.5):
     Searches all episodes in the 4 days preceding the given episode.
     Returns a list of all episodes with cosine similarity greather than the given threshold.
     '''
-    print(episode['_id'])
     duplicates = []
     air_date = db.ArchiveIndex.find_one({'_id': episode['_id']})['metadata']['Datetime_UTC']
     lower_bound = air_date - timedelta(days=4)
@@ -67,7 +68,6 @@ def findDuplicate(episode, threshold=0.5):
         compare_bag = getBag(compare_episode['_id'])
         similarity = cosineSimilarity(current_bag, compare_bag)
         if similarity > threshold:
-            print(similarity, compare_episode['_id'])
             duplicates.append(compare_episode['_id'])
     return duplicates
 
@@ -79,7 +79,13 @@ def cleanDuplicates():
     '''
     query = {'duplicates': {'$exists': False}}
     total_docs = db.ArchiveIndex.count_documents(query)
-    for i, episode in enumerate(db.CleanedIndex.find(query).sort('metadata.Datetime_UTC')):
-        print(f' {i}, {i/total_docs:.2%}', end='\r')
+    num_dups = 0
+    for i, episode in enumerate(db.CleanedIndex.find(query, {
+        '_id': 1,
+        'metadata.Network': 1
+    }).sort('metadata.Datetime_UTC')):
+        print(f' {i}, {i/total_docs:.2%}, num dups found: {num_dups}', end='\r')
         duplicates = findDuplicate((episode))
-        # db.ArchiveIndex.update_one({'_id': episode_id['_id']}, {'$set': {'duplicate_of': duplicates}})
+        if duplicates:
+            num_dups += len(duplicates)
+        db.ArchiveIndex.update_one({'_id': episode['_id']}, {'$set': {'duplicate_of': duplicates}})
