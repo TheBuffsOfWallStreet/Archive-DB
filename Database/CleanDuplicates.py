@@ -1,13 +1,18 @@
 from pymongo import MongoClient
+from functools import lru_cache
 from datetime import timedelta
 from nltk import corpus
 from nltk.tokenize import word_tokenize
-from functools import lru_cache
 
 db = MongoClient('localhost', 27017).WallStreetDB
-cache = CacheClient('localhost')
-
 stopwords = set(corpus.stopwords.words('english'))
+
+def nGrams(text, n=2):
+    tokens = [w for w in word_tokenize(text) if w not in stopwords]
+    bag = set()
+    for i in range(n, len(tokens)+1):
+        bag.add(' '.join(tokens[i - n: i]))
+    return bag
 
 cacheMisses = {}  # TODO: remove debug tool.
 
@@ -27,11 +32,7 @@ def getBag(episode_id, n_gram=2):
 
     episode = db.ArchiveIndex.find_one({'_id': episode_id}, {'snippets': 1})
     text = ' '.join(x['transcript'] for x in episode['snippets'])
-    tokens = [w for w in word_tokenize(text) if w not in stopwords]
-    bag = set()
-    for i in range(n_gram, len(tokens)):
-        bag.add(' '.join(tokens[i - n_gram: i]))
-    return bag
+    return nGrams(text, n_gram)
 
 
 def jaccardSimilarity(bag1, bag2):
