@@ -1,39 +1,47 @@
 from pymongo import MongoClient
-from pymemcache.client.base import Client as CacheClient
 from datetime import timedelta
 from nltk import corpus
 from nltk.tokenize import word_tokenize
+from functools import lru_cache
 
 db = MongoClient('localhost', 27017).WallStreetDB
 cache = CacheClient('localhost')
 
 stopwords = set(corpus.stopwords.words('english'))
 
-cacheMisses = {} # TODO: remove debug tool.
+cacheMisses = {}  # TODO: remove debug tool.
 
-def getBag(episode, n_gram=2):
+
+@lru_cache(maxsize=64, typed=False)
+def getBag(episode_id, n_gram=2):
     '''
     Returns a bag of n_grams for the given episodes transcript.
     Caches results to the database for quick re-access.
     '''
-    cached = cache.get(episode['_id'])
-    if cached:
-        return set(cached)
+    # TODO: Remove debug tool
+    if episode_id in cacheMisses:
+        cacheMisses[episode_id] += 1
+        print(f'cache miss {cacheMisses[episode_id]} {episode_id}')
     else:
-        # TODO: Remove debug tool
-        if episode['_id'] in cacheMisses:
-            cacheMisses[episode['_id']] += 1
-            print(f'cache miss {cacheMisses[episode["_id"]]} {episode["_id"]}')
-        else:
-            cacheMisses[episode['_id']] = 1
+        cacheMisses[episode_id] = 1
 
-        text = ' '.join(x['transcript'] for x in episode['snippets'])
-        tokens = [w for w in word_tokenize(text) if w not in stopwords]
-        bag = set()
-        for i in range(n_gram, len(tokens)):
-            bag.add(' '.join(tokens[i - n_gram: i]))
-        cache.set(episode['_id'], str(bag).encode("utf-8"), 60)
-        return bag
+    episode = db.ArchiveIndex.find_one({'_id': episode_id}, {'snippets': 1})
+    text = ' '.join(x['transcript'] for x in episode['snippets'])
+    tokens = [w for w in word_tokenize(text) if w not in stopwords]
+    bag = set()
+    for i in range(n_gram, len(tokens)):
+        bag.add(' '.join(tokens[i - n_gram: i]))
+    return bag
+
+
+def jaccardSimilarity(bag1, bag2):
+    return len(bag1.intersection(bag2)) / (len(bag1.union(bag2)) + 1)
+
+
+def cosineSimilarity(bag1, bag2):
+    print(len(bag1), len(bag2))
+    mags = (len(bag1) * len(bag2))**.5
+    return len(bag1.intersection(bag2)) / (mags + 1)
 
 
 def findDuplicate(episode, threshold=0.5):
@@ -41,6 +49,7 @@ def findDuplicate(episode, threshold=0.5):
     Searches all episodes in the 4 days preceding the given episode.
     Returns a list of all episodes with cosine similarity greather than the given threshold.
     '''
+    print(episode['_id'])
     duplicates = []
     air_date = db.ArchiveIndex.find_one({'_id': episode['_id']})['metadata']['Datetime_UTC']
     lower_bound = air_date - timedelta(days=4)
@@ -48,13 +57,16 @@ def findDuplicate(episode, threshold=0.5):
     compare_episodes = db.ArchiveIndex.find({
         'metadata.Datetime_UTC': {'$lt': air_date, '$gte': lower_bound},
         'metadata.Network': {'$eq': episode['metadata']['Network']},
+    }, {
+        '_id': 1
     })
 
-    current_bag = getBag(episode)
+    current_bag = getBag(episode['_id'])
     for compare_episode in compare_episodes:
-        compare_bag = getBag(compare_episode)
-        cos_similarity = len(current_bag.intersection(compare_bag)) / (len(current_bag.union(compare_bag)) + 1)
-        if cos_similarity > threshold:
+        compare_bag = getBag(compare_episode['_id'])
+        similarity = cosineSimilarity(current_bag, compare_bag)
+        if similarity > threshold:
+            print(similarity, compare_episode['_id'])
             duplicates.append(compare_episode['_id'])
     return duplicates
 
@@ -69,4 +81,4 @@ def cleanDuplicates():
     for i, episode in enumerate(db.CleanedIndex.find(query).sort('metadata.Datetime_UTC')):
         print(f' {i}, {i/total_docs:.2%}', end='\r')
         duplicates = findDuplicate((episode))
-        db.ArchiveIndex.update_one({'_id': episode['_id']}, {'$set': {'duplicate_of': duplicates}})
+        # db.ArchiveIndex.update_one({'_id': episode_id['_id']}, {'$set': {'duplicate_of': duplicates}})
