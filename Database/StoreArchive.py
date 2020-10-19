@@ -1,7 +1,7 @@
 # import FetchArchive as fetch
 from Database import FetchArchive as fetch
+from Database.Connect import connect
 
-from pymongo import MongoClient
 import os
 import logging
 from concurrent import futures
@@ -10,7 +10,7 @@ if not os.path.exists('logs'):
     os.makedirs('logs')
 logging.basicConfig(filename='logs/StoreArchive.log', level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
 
-db = MongoClient('localhost', 27017).WallStreetDB
+db = connect()
 
 
 def buildIndex(network):

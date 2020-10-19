@@ -1,6 +1,6 @@
-from pymongo import MongoClient
+from Database.Connect import connect
 
-db = MongoClient('localhost', 27017).WallStreetDB
+db = connect()
 
 
 def createCleanedIndex():
