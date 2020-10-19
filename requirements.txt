@@ -7,4 +7,3 @@ pymongo
 numpy
 pytz
 nltk
-pymemcache
