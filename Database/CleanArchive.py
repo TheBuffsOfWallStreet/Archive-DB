@@ -21,8 +21,8 @@ def clean(all=True):
             'transcript_str_length': {'$exists': False},
             'metadata': {'$exists': True},
         }
-    total_docs = db.ArchiveIndex.count_documents(query)
-    for i, episode in enumerate(db.ArchiveIndex.find(query)):
+    total_docs = db.Episodes.count_documents(query)
+    for i, episode in enumerate(db.Episodes.find(query)):
         print(f' {i}, {i/total_docs:.1%}', end='\r')  # Progress Bar
         set_fields = {}  # Fields to update in the object
         errors = []
@@ -95,6 +95,6 @@ def clean(all=True):
             transaction['$unset'] = {'errors': 1}
         if set_fields:  # $set cannot be empty.
             transaction['$set'] = set_fields
-        db.ArchiveIndex.update_one({'_id': episode['_id']}, transaction)
+        db.Episodes.update_one({'_id': episode['_id']}, transaction)
     print('Updates:', updates)
     print('Failures:', failures)

@@ -14,7 +14,7 @@ def getSeriesBuckets(show, bins, matching=None):
     match = {'metadata.Title': show}
     if matching:
         match['snippets.transcript'] = {'$regex': matching}
-    res = db.CleanedIndex.aggregate([{
+    res = db.CleanEpisodes.aggregate([{
         '$match': match
     }, {
         '$bucket': {
@@ -64,7 +64,7 @@ def menu():
     series = [x for x in series]
 
     # Boundries for Buckets
-    boundary_query = db.CleanedIndex.aggregate([{
+    boundary_query = db.CleanEpisodes.aggregate([{
         '$group': {
             '_id': None,
             'min': {'$min': '$metadata.Datetime_UTC'},

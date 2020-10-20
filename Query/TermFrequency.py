@@ -14,7 +14,7 @@ def getTermFrequency(term):
     for show in show_length:
         shows[show['_id']] = show
 
-    term_counts = db['ArchiveIndex'].aggregate([{
+    term_counts = db.CleanEpisodes.aggregate([{
         '$match': {
             'snippets': {'$exists': True},
             'errors': {'$exists': False}
