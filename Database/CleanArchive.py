@@ -3,9 +3,6 @@ from datetime import datetime, timedelta
 from collections import Counter
 import pytz
 import re
-import datetime
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
 
 db = MongoClient('localhost', 27017).WallStreetDB
 
@@ -17,7 +14,6 @@ def clean(all=True):
     '''
     updates = Counter()  # Track metrics for user
     failures = Counter()
-    duplicates = Counter()
     query = {}
     if not all:
         query = {
@@ -32,13 +28,9 @@ def clean(all=True):
 
         if 'date' in episode:
             # Create datetime object from date string scraped from web.
-            try:  # Wrapped in try except in case date format changes, causing an exception.
-                form = '%Y-%m-%dT%H:%M:%SZ'
-                set_fields['datetime'] = datetime.strptime(episode['date'], form)
-                updates['datetime'] += 1
-            except:
-                print('failed parsing date from date')
-                failures['datetime'] += 1
+            form = '%Y-%m-%dT%H:%M:%SZ'
+            set_fields['datetime'] = datetime.strptime(episode['date'], form)
+            updates['datetime'] += 1
         if 'metadata' in episode:
             # Parse datetime from Subtitle attrubite. Includes hour, endtime, and timezone.
             # Stores datetime in UTC time.
@@ -63,44 +55,29 @@ def clean(all=True):
                 failures['metadata.Subtitle'] += 1
 
             # Parse duration into timedelta object. Convert to seconds and store.
-            try:
-                duration = datetime.strptime(episode['metadata']['Duration'], '%H:%M:%S')
-                duration_delta = timedelta(hours=duration.hour, minutes=duration.minute, seconds=duration.second)
-                set_fields['metadata.Duration_s'] = duration_delta.seconds
-                if duration_delta.seconds == 0:
-                    errors.append('duration_is_0')
-                updates['metadata.Duration'] += 1
-            except:
-                print('Failed parsing timedelta from duration')
-                failures['metadata.Duration'] += 1
+            duration = datetime.strptime(episode['metadata']['Duration'], '%H:%M:%S')
+            duration_delta = timedelta(hours=duration.hour, minutes=duration.minute, seconds=duration.second)
+            set_fields['metadata.Duration_s'] = duration_delta.seconds
+            if duration_delta.seconds == 0:
+                errors.append('duration_is_0')
+            updates['metadata.Duration'] += 1
 
+        if 'snippets' in episode:
             # Mark episodes as empty or short according to text length.
-            try:
-                transcript_len = 0
-                for snippet in episode['snippets']:
-                    transcript_len += len(snippet['transcript'])
-                set_fields['transcript_str_length'] = transcript_len
-                if transcript_len == 0:
-                    errors.append('transcript_is_empty')
-                if transcript_len < 244:
-                    errors.append('transcript_is_short')
-                updates['transcript_len'] += 1
-            except:
-                print('Failed calculating segment length')
-                failures['transcript_len'] += 1
+            transcript_len = 0
+            for snippet in episode['snippets']:
+                transcript_len += len(snippet['transcript'])
+            set_fields['transcript_str_length'] = transcript_len
+            if transcript_len == 0:
+                errors.append('transcript_is_empty')
+            if transcript_len < 244:
+                errors.append('transcript_is_short')
+            updates['transcript_len'] += 1
 
         # Remove empty transcripts.
         transaction = {
             '$pull': {'snippets': {'transcript': ''}}
         }
-
-        duplicate, show = checkDuplicate(episode)
-
-        if duplicate < 1.0:
-            print('Duplicate found')
-            errors.append('transcript_is_duplicate')
-            set_fields['duplicateOf'] = show
-            duplicates['metadata.Title'] += 1
         if errors:
             set_fields['errors'] = errors
         else:
@@ -111,51 +88,3 @@ def clean(all=True):
         db.ArchiveIndex.update_one({'_id': episode['_id']}, transaction)
     print('Updates:', updates)
     print('Failures:', failures)
-    print('Duplicates', duplicates)
-
-
-def checkDuplicate(epi):
-    upperBound = db.ArchiveIndex.find_one({'_id': epi['_id']})['date']
-    dateTimeObj = datetime.datetime.strptime(upperBound, '%Y-%m-%dT%H:%M:%SZ')
-    lowerBound = str(dateTimeObj - datetime.timedelta(days=2))
-    fields = db.ArchiveIndex.find({'date': {'$lte': upperBound, '$gte': lowerBound}}, {'snippets': 1})
-    currentEpisode = ''
-    for snip in epi['snippets']:
-        currentEpisode += str(snip['transcript'])
-
-    xList = word_tokenize(currentEpisode)
-    sw = stopwords.words('english')
-
-    for field in fields:
-        compareEpisode = ''
-        cosine = 0
-        try:
-            for snip in field['snippets']:
-                compareEpisode += str(snip['transcript'])
-            yList = word_tokenize(compareEpisode)
-            l1 = []
-            l2 = []
-            xSet = {w for w in xList if not w in sw}
-            ySet = {w for w in yList if not w in sw}
-            vector = xSet.union(ySet)
-            for w in vector:
-                if (w in xSet):
-                    l1.append(1)
-                else:
-                    l1.append(0)
-                if (w in ySet):
-                    l2.append(1)
-                else:
-                    l2.append(0)
-                c = 0
-            for i in range(len(vector)):
-                c += l1[i] * l2[i]
-            cosine = c / float((sum(l1) * sum(l2)) ** .5)
-
-        except Exception as e:
-            print(e)
-        if cosine > 0.5:
-            print(cosine)
-            return cosine, field['_id']
-
-    return 1, None
