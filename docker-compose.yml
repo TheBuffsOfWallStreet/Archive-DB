@@ -1,0 +1,15 @@
+version: "3.8"
+services:
+  runner:
+    build: .
+    stdin_open: true
+    tty: true
+    links:
+      - "database:db"
+
+  database:
+    image: mongo:4.4
+    ports:
+      - 69:27017
+    volumes:
+      - $PWD/data/db:/data/db
