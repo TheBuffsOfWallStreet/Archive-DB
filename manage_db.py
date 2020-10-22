@@ -10,6 +10,7 @@ if __name__ == '__main__':
         print('i) Build index')
         print('d) Download episodes')
         print('c) Clean Data')
+        print('dd) Detect Duplicates')
         print('v) Create Views')
         print('q) Quit')
         print()
@@ -48,6 +49,8 @@ if __name__ == '__main__':
                 Database.clean()
             elif all == 'n':
                 Database.clean(all=False)
+        elif menu == 'dd':
+            Database.cleanDuplicates()
         elif menu == 'v':
             Database.createViews()
         elif menu == 'q':
