@@ -1,10 +1,11 @@
-from pymongo import MongoClient
+from Database.Connect import connect
+
 from functools import lru_cache
 from datetime import timedelta
 from nltk import corpus
 from nltk.tokenize import word_tokenize
 
-db = MongoClient('localhost', 27017).WallStreetDB
+db = connect()
 stopwords = set(corpus.stopwords.words('english'))
 
 
@@ -78,7 +79,7 @@ def cleanDuplicates():
     Stores duplicates for each episode in database as an array.
     '''
     query = {'duplicates': {'$exists': False}}
-    total_docs = db.ArchiveIndex.count_documents(query)
+    total_docs = db.CleanedIndex.count_documents(query)
     num_dups = 0
     for i, episode in enumerate(db.CleanedIndex.find(query, {
         '_id': 1,
