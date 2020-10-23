@@ -3,3 +3,8 @@ install requirements.txt:
     
 install english language for spacy:
     python3 -m spacy download en_core_web_sm
+
+install nltk module:
+    python3
+    import nltk
+    nltk.download('all')

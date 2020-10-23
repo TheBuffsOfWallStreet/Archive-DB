@@ -21,20 +21,17 @@ def clean(all=True):
             'transcript_str_length': {'$exists': False},
             'metadata': {'$exists': True},
         }
-    total_docs = db.Episodes.count_documents(query)
-    for i, episode in enumerate(db.Episodes.find(query)):
-        print(f' {i}, {i/total_docs:.1%}', end='\r')  # Progress Bar
+    total_docs = db.CleanEpisodes.count_documents(query)
+    for i, episode in enumerate(db.ArchiveIndex.find(query)):
+        print(f' {i}, {i / total_docs:.1%}', end='\r')  # Progress Bar
         set_fields = {}  # Fields to update in the object
         errors = []
+
         if 'date' in episode:
             # Create datetime object from date string scraped from web.
-            try: # Wrapped in try except in case date format changes, causing an exception.
-                form = '%Y-%m-%dT%H:%M:%SZ'
-                set_fields['datetime'] = datetime.strptime(episode['date'], form)
-                updates['datetime'] += 1
-            except:
-                print('failed parsing date from date')
-                failures['datetime'] += 1
+            form = '%Y-%m-%dT%H:%M:%SZ'
+            set_fields['datetime'] = datetime.strptime(episode['date'], form)
+            updates['datetime'] += 1
         if 'metadata' in episode:
             # Parse datetime from Subtitle attrubite. Includes hour, endtime, and timezone.
             # Stores datetime in UTC time.
@@ -59,31 +56,24 @@ def clean(all=True):
                 failures['metadata.Subtitle'] += 1
 
             # Parse duration into timedelta object. Convert to seconds and store.
-            try:
-                duration = datetime.strptime(episode['metadata']['Duration'], '%H:%M:%S')
-                duration_delta = timedelta(hours=duration.hour, minutes=duration.minute, seconds=duration.second)
-                set_fields['metadata.Duration_s'] = duration_delta.seconds
-                if duration_delta.seconds == 0:
-                    errors.append('duration_is_0')
-                updates['metadata.Duration'] += 1
-            except:
-                print('Failed parsing timedelta from duration')
-                failures['metadata.Duration'] += 1
+            duration = datetime.strptime(episode['metadata']['Duration'], '%H:%M:%S')
+            duration_delta = timedelta(hours=duration.hour, minutes=duration.minute, seconds=duration.second)
+            set_fields['metadata.Duration_s'] = duration_delta.seconds
+            if duration_delta.seconds == 0:
+                errors.append('duration_is_0')
+            updates['metadata.Duration'] += 1
 
+        if 'snippets' in episode:
             # Mark episodes as empty or short according to text length.
-            try:
-                transcript_len = 0
-                for snippet in episode['snippets']:
-                    transcript_len += len(snippet['transcript'])
-                set_fields['transcript_str_length'] = transcript_len
-                if transcript_len == 0:
-                    errors.append('transcript_is_empty')
-                if transcript_len < 244:
-                    errors.append('transcript_is_short')
-                updates['transcript_len'] += 1
-            except:
-                print('Failed calculating segment length')
-                failures['transcript_len'] += 1
+            transcript_len = 0
+            for snippet in episode['snippets']:
+                transcript_len += len(snippet['transcript'])
+            set_fields['transcript_str_length'] = transcript_len
+            if transcript_len == 0:
+                errors.append('transcript_is_empty')
+            if transcript_len < 244:
+                errors.append('transcript_is_short')
+            updates['transcript_len'] += 1
 
         # Remove empty transcripts.
         transaction = {

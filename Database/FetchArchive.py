@@ -23,6 +23,7 @@ def archiveIndexGenerator(network):
             'sorts': 'date',
             'cursor': cursor,
         }
+
         res = requests.get(url, payload, timeout=10)
         assert(res.status_code == 200)
         data = res.json()

@@ -6,3 +6,4 @@ pandas
 pymongo
 numpy
 pytz
+nltk
