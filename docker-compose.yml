@@ -11,7 +11,7 @@ services:
       - "database:db"
 
   database:
-    image: mongo:4.4
+    image: ./database
     container_name: my_database
     ports:
       - 69:27017
