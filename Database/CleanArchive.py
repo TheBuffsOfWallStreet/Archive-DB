@@ -22,7 +22,7 @@ def clean(all=True):
             'metadata': {'$exists': True},
         }
     total_docs = db.CleanEpisodes.count_documents(query)
-    for i, episode in enumerate(db.ArchiveIndex.find(query)):
+    for i, episode in enumerate(db.CleanEpisodes.find(query)):
         print(f' {i}, {i / total_docs:.1%}', end='\r')  # Progress Bar
         set_fields = {}  # Fields to update in the object
         errors = []

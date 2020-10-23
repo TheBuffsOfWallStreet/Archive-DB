@@ -33,7 +33,7 @@ def getBag(episode_id, n_gram=2):
     else:
         cacheMisses[episode_id] = 1
 
-    episode = db.ArchiveIndex.find_one({'_id': episode_id}, {'snippets': 1})
+    episode = db.Episodes.find_one({'_id': episode_id}, {'snippets': 1})
     text = ' '.join(x['transcript'] for x in episode['snippets'])
     return nGrams(text, n_gram)
 
@@ -53,10 +53,10 @@ def findDuplicate(episode, threshold=0.5):
     Returns a list of all episodes with cosine similarity greather than the given threshold.
     '''
     duplicates = []
-    air_date = db.ArchiveIndex.find_one({'_id': episode['_id']})['metadata']['Datetime_UTC']
+    air_date = db.Episodes.find_one({'_id': episode['_id']})['metadata']['Datetime_UTC']
     lower_bound = air_date - timedelta(days=4)
 
-    compare_episodes = db.ArchiveIndex.find({
+    compare_episodes = db.Episodes.find({
         'metadata.Datetime_UTC': {'$lt': air_date, '$gte': lower_bound},
         'metadata.Network': {'$eq': episode['metadata']['Network']},
     }, {
@@ -78,9 +78,9 @@ def cleanDuplicates():
     Stores duplicates for each episode in database as an array.
     '''
     query = {'duplicates': {'$exists': False}}
-    total_docs = db.ArchiveIndex.count_documents(query)
+    total_docs = db.CleanEpisodes.count_documents(query)
     num_dups = 0
-    for i, episode in enumerate(db.CleanedIndex.find(query, {
+    for i, episode in enumerate(db.CleanEpisodes.find(query, {
         '_id': 1,
         'metadata.Network': 1
     }).sort('metadata.Datetime_UTC')):
@@ -88,4 +88,4 @@ def cleanDuplicates():
         duplicates = findDuplicate((episode))
         if duplicates:
             num_dups += len(duplicates)
-        db.ArchiveIndex.update_one({'_id': episode['_id']}, {'$set': {'duplicate_of': duplicates}})
+        db.Episodes.update_one({'_id': episode['_id']}, {'$set': {'duplicate_of': duplicates}})
