@@ -1,4 +1,4 @@
-version: "3.8"
+version: "3.3"
 services:
   runner:
     build: ./runner
@@ -17,3 +17,4 @@ services:
       - 69:27017
     volumes:
       - ./database/data/db:/data/db
+    command: ["--bind_ip_all"]
