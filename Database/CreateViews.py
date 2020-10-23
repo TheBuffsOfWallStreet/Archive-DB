@@ -54,8 +54,36 @@ def createSeriesSummary():
             ]
         })
 
+def createNetworkSummary():
+    '''NetworkSummary stores aggregate information about the networks contained in the database.'''
+    if "NetworkSummary" in db.list_collection_names():
+        print('SeriesSummary already exists')
+        return
+    else:
+        db.command({
+            'create': 'NetworkSummary',
+            'viewOn': 'Episodes',
+            'pipeline': [
+                {
+                    '$group': {
+                        '_id': '$metadata.Network',
+                        'num_episodes': {
+                            '$sum': 1
+                        },
+                        'total_len': {
+                            '$sum': '$transcript_str_length'
+                        },
+                        'total_duration': {
+                            '$sum': '$metadata.Duration_s'
+                        }
+                    }
+                }
+            ]
+        })
+
 
 def createViews():
     '''Wrapper that calls all view functions.'''
     createCleanEpisodes()
     createSeriesSummary()
+    createNetworkSummary()
