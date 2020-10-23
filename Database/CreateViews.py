@@ -13,16 +13,10 @@ def createCleanEpisodes():
             "create": "CleanEpisodes",
             "viewOn": "Episodes",
             "pipeline": [
-                {
-                    '$match': {
-                        'errors': {
-                            '$exists': False
-                        },
-                        'transcript_str_length': {
-                            '$exists': True
-                        }
-                    }
-                }
+                {'$match': {
+                    'errors': {'$exists': False},
+                    'transcript_str_length': {'$exists': True}
+                }}
             ]
         })
 
@@ -37,20 +31,12 @@ def createSeriesSummary():
             'create': 'SeriesSummary',
             'viewOn': 'CleanEpisodes',
             'pipeline': [
-                {
-                    '$group': {
-                        '_id': '$metadata.Title',
-                        'num_episodes': {
-                            '$sum': 1
-                        },
-                        'total_len': {
-                            '$sum': '$transcript_str_length'
-                        },
-                        'total_duration': {
-                            '$sum': '$metadata.Duration_s'
-                        }
-                    }
-                }
+                {'$group': {
+                    '_id': '$metadata.Title',
+                    'num_episodes': {'$sum': 1},
+                    'total_len': {'$sum': '$transcript_str_length'},
+                    'total_duration': {'$sum': '$metadata.Duration_s'}
+                }}
             ]
         })
 
@@ -64,20 +50,12 @@ def createNetworkSummary():
             'create': 'NetworkSummary',
             'viewOn': 'Episodes',
             'pipeline': [
-                {
-                    '$group': {
-                        '_id': '$metadata.Network',
-                        'num_episodes': {
-                            '$sum': 1
-                        },
-                        'total_len': {
-                            '$sum': '$transcript_str_length'
-                        },
-                        'total_duration': {
-                            '$sum': '$metadata.Duration_s'
-                        }
-                    }
-                }
+                {'$group': {
+                    '_id': '$metadata.Network',
+                    'num_episodes': {'$sum': 1},
+                    'total_len': {'$sum': '$transcript_str_length'},
+                    'total_duration': {'$sum': '$metadata.Duration_s'}
+                }}
             ]
         })
 
