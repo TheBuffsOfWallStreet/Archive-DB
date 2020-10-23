@@ -7,6 +7,9 @@ services:
     tty: true
     volumes:
       - ./runner/src:/usr/src
+    networks:
+      mongo_net:
+        ipv4_address: 172.16.0.3
     links:
       - "database:db"
 
