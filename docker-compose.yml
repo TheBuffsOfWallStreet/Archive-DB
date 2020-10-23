@@ -2,6 +2,7 @@ version: "3.8"
 services:
   runner:
     build: ./runner
+    container_name: my_runner
     stdin_open: true
     tty: true
     volumes:
@@ -11,6 +12,7 @@ services:
 
   database:
     image: mongo:4.4
+    container_name: my_database
     ports:
       - 69:27017
     volumes:
