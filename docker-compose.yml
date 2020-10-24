@@ -21,9 +21,11 @@ services:
     networks:
       mongo_net:
         ipv4_address: 172.16.0.2
+    cap_add:
+      - NET_ADMIN
     volumes:
       - ./database/data/db:/data/db
-    command: mongod --bind_ip 127.0.0.1,172.16.0.2
+    command: ./startup.sh
 
 networks:
   mongo_net:
