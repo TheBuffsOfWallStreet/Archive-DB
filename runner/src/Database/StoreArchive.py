@@ -42,7 +42,7 @@ def buildEpisodes(n=None):
     '''
     num_failed = 0
     num_suceed = 0
-    empty_episodes = db.ArchiveIndex.find({'metadata': {'$eq': None}})
+    empty_episodes = db.ArchiveIndex.find({'metadata': {'$eq': None}}, {'_id': 1})
     if n is not None:
         empty_episodes = empty_episodes.limit(n)
 
