@@ -26,8 +26,9 @@ def buildIndex(network):
 def writeEpisode(episode_id):
     '''Use fetch module to get episode data, then write to database.'''
     try:
+        fork_db = connect(new=True)
         data = fetch.getEpisode(episode_id)
-        db.ArchiveIndex.update_one({'_id': episode_id}, {'$set': data})
+        fork_db.ArchiveIndex.update_one({'_id': episode_id}, {'$set': data})
         return True
     except Exception as e:
         logging.exception(e)
@@ -45,7 +46,7 @@ def buildEpisodes(n=None):
     if n is not None:
         empty_episodes = empty_episodes.limit(n)
 
-    with futures.ThreadPoolExecutor(max_workers=8) as executor:
+    with futures.ProcessPoolExecutor(max_workers=8) as executor:
         future_to_id = {executor.submit(writeEpisode, item['_id']): item['_id'] for item in empty_episodes}
         for i, future in enumerate(futures.as_completed(future_to_id)):
             id = future_to_id[future]
