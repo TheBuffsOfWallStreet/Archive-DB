@@ -13,7 +13,7 @@ This creates a mongo database container and a python runner container.
 2. Login to the python runner and run your desired function.
 ```
 docker exec -it my_runner /bin/bash
-my_runner# python3 manage_db.py
+my_runner:~ $ python3 manage_db.py
 ```
 
 # Contributors
