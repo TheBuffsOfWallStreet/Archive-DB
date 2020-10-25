@@ -1,3 +1,5 @@
+from Parallel import runProcesses
+
 from Database.Connect import connect
 
 from datetime import datetime, timedelta
@@ -16,7 +18,6 @@ def cleanEpisode(episode):
         # Create datetime object from date string scraped from web.
         form = '%Y-%m-%dT%H:%M:%SZ'
         set_fields['datetime'] = datetime.strptime(episode['date'], form)
-        updates['datetime'] += 1
     else:
         errors.append('no_date')
     if 'metadata' in episode:
@@ -37,7 +38,6 @@ def cleanEpisode(episode):
                 timezone = 'CST6CDT'
             date = pytz.timezone(timezone).localize(date)
             set_fields['metadata.Datetime_UTC'] = date.astimezone(pytz.utc)
-            updates['metadata.Subtitle'] += 1
         except:
             errors.append('failed_parsing_datetime_from_metadata.Subtitle')
 
@@ -61,7 +61,6 @@ def cleanEpisode(episode):
             errors.append('transcript_is_empty')
         if transcript_len < 244:
             errors.append('transcript_is_short')
-        updates['transcript_len'] += 1
 
     # Remove empty transcripts.
     transaction = {
@@ -82,17 +81,10 @@ def clean(all=True):
     User function to run all cleaning functions.
     if all == False, data that has already been scanned is ignored.
     '''
-    updates = Counter()  # Track metrics for user
-    failures = Counter()
     query = {}
     if not all:
         query = {
             'transcript_str_length': {'$exists': False},
             'metadata': {'$exists': True},
         }
-    total_docs = db.ArchiveIndex.count_documents(query)
-    for i, episode in enumerate(db.ArchiveIndex.find(query)):
-        print(f' {i}, {i / total_docs:.1%}', end='\r')  # Progress Bar
-        cleanEpisode(episode)
-    print('Updates:', updates)
-    print('Failures:', failures)
+    runProcesses(cleanEpisode, db.ArchiveIndex.find(query))
