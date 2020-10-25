@@ -47,7 +47,7 @@ def cosineSimilarity(bag1, bag2):
     return len(bag1.intersection(bag2)) / (mags + 1)
 
 
-def findDuplicate(episode, threshold=0.5):
+def findDuplicate(episode, threshold=0.3):
     '''
     Searches all episodes in the 4 days preceding the given episode.
     Returns a list of all episodes with cosine similarity greather than the given threshold.
