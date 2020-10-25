@@ -34,4 +34,4 @@ my_runner# python3 manage_db.py
 
 # License
 
-[GNU General Public License](https://www.gnu.org/licenses/gpl-3.0.en.html)
+[MIT Open Source License](LICENSE.txt)
