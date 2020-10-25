@@ -10,8 +10,10 @@ import re
 db = connect()
 
 
-def cleanEpisode(episode):
+def cleanEpisode(episode_id):
     '''Detects errors in episode and writes changes to database'''
+    fork_db = connect(new=True)
+    episode = fork_db.ArchiveIndex.find_one({'_id': episode_id})
     set_fields = {}  # Fields to update in the object
     errors = []
     if 'date' in episode:
@@ -73,7 +75,7 @@ def cleanEpisode(episode):
     if set_fields:  # $set cannot be empty.
         transaction['$set'] = set_fields
 
-    connect(new=True).ArchiveIndex.update_one({'_id': episode['_id']}, transaction)
+    fork_db.ArchiveIndex.update_one({'_id': episode['_id']}, transaction)
 
 
 def clean(all=True):
@@ -87,4 +89,5 @@ def clean(all=True):
             'transcript_str_length': {'$exists': False},
             'metadata': {'$exists': True},
         }
-    runProcesses(cleanEpisode, db.ArchiveIndex.find(query))
+    episode_ids = [episode['_id'] for episode in db.ArchiveIndex.find(query, {'_id': 1})]
+    runProcesses(cleanEpisode, episode_ids, 3)
