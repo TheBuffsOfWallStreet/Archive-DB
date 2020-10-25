@@ -1,4 +1,5 @@
-# import FetchArchive as fetch
+from Parallel import runProcesses
+
 from Database import FetchArchive as fetch
 from Database.Connect import connect
 
@@ -46,15 +47,4 @@ def buildEpisodes(n=None):
     if n is not None:
         empty_episodes = empty_episodes.limit(n)
 
-    with futures.ProcessPoolExecutor(max_workers=8) as executor:
-        future_to_id = {executor.submit(writeEpisode, item['_id']): item['_id'] for item in empty_episodes}
-        for i, future in enumerate(futures.as_completed(future_to_id)):
-            id = future_to_id[future]
-            succeded = future.result()
-            if succeded:
-                num_suceed += 1
-            else:
-                num_failed += 1
-            print(f'{i+1} documents, {num_failed} failed ({num_failed/(i+1):.0%})', end='\r')
-    print()
-    print(f'downloaded {num_suceed} new documents')
+    runProcesses(writeEpisode, [item['_id'] for item in empty_episodes], max_workers=4)

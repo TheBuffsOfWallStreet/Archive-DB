@@ -1,3 +1,5 @@
+from Parallel import runProcesses
+
 from Database.Connect import connect
 
 from functools import lru_cache
@@ -92,8 +94,4 @@ def cleanDuplicates():
         'metadata.Network': 1,
         'metadata.Datetime_UTC': 1
     }).sort('metadata.Datetime_UTC')
-    with futures.ProcessPoolExecutor(max_workers=3) as executor:
-        processes = [executor.submit(findDuplicate, episode) for episode in cursor]
-        for i, process in enumerate(futures.as_completed(processes)):
-            num_dups += process.result()
-            print(f' {i}, {i/total_docs:.2%}, num dups found: {num_dups}', end='\r')
+    runProcesses(findDuplicate, cursor, max_workers=3)
