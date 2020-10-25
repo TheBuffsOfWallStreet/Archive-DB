@@ -1,7 +1,6 @@
 from Parallel import runProcesses
-
 from Database import FetchArchive as fetch
-from Database.Connect import connect
+from Database import connect
 
 import os
 import logging

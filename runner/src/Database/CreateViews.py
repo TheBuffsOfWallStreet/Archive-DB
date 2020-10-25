@@ -1,4 +1,4 @@
-from Database.Connect import connect
+from Database import connect
 
 db = connect()
 

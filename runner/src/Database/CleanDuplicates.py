@@ -1,6 +1,5 @@
 from Parallel import runProcesses
-
-from Database.Connect import connect
+from Database import connect
 
 from functools import lru_cache
 from datetime import timedelta

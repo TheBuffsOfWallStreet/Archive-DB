@@ -1,6 +1,5 @@
 from Parallel import runProcesses
-
-from Database.Connect import connect
+from Database import connect
 
 from datetime import datetime, timedelta
 from collections import Counter
