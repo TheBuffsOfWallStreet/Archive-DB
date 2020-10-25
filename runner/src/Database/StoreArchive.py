@@ -1,4 +1,4 @@
-# import FetchArchive as fetch
+from Parallel import runProcesses
 from Database import FetchArchive as fetch
 from Database.Connect import connect
 
@@ -20,7 +20,7 @@ def buildIndex(network):
         item['_id'] = item['identifier']
         key = {'_id': item['_id']}
         # Upsert inserts (instead of update) if the item does not exist.
-        db.ArchiveIndex.update_one(key, {'$set': item}, upsert=True)
+        db.Episodes.update_one(key, {'$set': item}, upsert=True)
 
 
 def writeEpisode(episode_id):
@@ -28,7 +28,7 @@ def writeEpisode(episode_id):
     try:
         fork_db = connect(new=True)
         data = fetch.getEpisode(episode_id)
-        fork_db.ArchiveIndex.update_one({'_id': episode_id}, {'$set': data})
+        fork_db.Episodes.update_one({'_id': episode_id}, {'$set': data})
         return True
     except Exception as e:
         logging.exception(e)
@@ -42,19 +42,8 @@ def buildEpisodes(n=None):
     '''
     num_failed = 0
     num_suceed = 0
-    empty_episodes = db.ArchiveIndex.find({'metadata': {'$eq': None}}, {'_id': 1})
+    empty_episodes = db.Episodes.find({'metadata': {'$eq': None}}, {'_id': 1})
     if n is not None:
         empty_episodes = empty_episodes.limit(n)
 
-    with futures.ProcessPoolExecutor(max_workers=8) as executor:
-        future_to_id = {executor.submit(writeEpisode, item['_id']): item['_id'] for item in empty_episodes}
-        for i, future in enumerate(futures.as_completed(future_to_id)):
-            id = future_to_id[future]
-            succeded = future.result()
-            if succeded:
-                num_suceed += 1
-            else:
-                num_failed += 1
-            print(f'{i+1} documents, {num_failed} failed ({num_failed/(i+1):.0%})', end='\r')
-    print()
-    print(f'downloaded {num_suceed} new documents')
+    runProcesses(writeEpisode, [item['_id'] for item in empty_episodes], max_workers=8)

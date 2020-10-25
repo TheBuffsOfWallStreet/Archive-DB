@@ -1,5 +1,6 @@
 if __name__ == '__main__':
     import Database
+    from NLP import StoreNLP
 
     def myInput(text):
         return input(f'\033[92m {text} \033[0m')
@@ -11,6 +12,7 @@ if __name__ == '__main__':
         print('d) Download episodes')
         print('c) Clean Data')
         print('dd) Detect Duplicates')
+        print('dn) Detect Named Entities')
         print('v) Create Views')
         print('q) Quit')
         print()
@@ -51,6 +53,8 @@ if __name__ == '__main__':
                 Database.clean(all=False)
         elif menu == 'dd':
             Database.cleanDuplicates()
+        elif menu == 'dn':
+            StoreNLP.runStoreEntities()
         elif menu == 'v':
             Database.createViews()
         elif menu == 'q':

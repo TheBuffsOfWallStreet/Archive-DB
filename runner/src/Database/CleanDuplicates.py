@@ -1,3 +1,4 @@
+from Parallel import runProcesses
 from Database.Connect import connect
 
 from functools import lru_cache
@@ -5,8 +6,19 @@ from datetime import timedelta
 from nltk import corpus
 from nltk.tokenize import word_tokenize
 
+from concurrent import futures
+
 db = connect()
 stopwords = set(corpus.stopwords.words('english'))
+
+
+def jaccardSimilarity(bag1, bag2):
+    return len(bag1.intersection(bag2)) / (len(bag1.union(bag2)) + 1)
+
+
+def cosineSimilarity(bag1, bag2):
+    mags = (len(bag1) * len(bag2))**.5
+    return len(bag1.intersection(bag2)) / (mags + 1)
 
 
 def nGrams(text, n=2):
@@ -34,18 +46,10 @@ def getBag(episode_id, n_gram=2):
     else:
         cacheMisses[episode_id] = 1
 
-    episode = db.ArchiveIndex.find_one({'_id': episode_id}, {'snippets': 1})
+    fork_db = connect(new=True)
+    episode = fork_db.Episodes.find_one({'_id': episode_id}, {'snippets': 1})
     text = ' '.join(x['transcript'] for x in episode['snippets'])
     return nGrams(text, n_gram)
-
-
-def jaccardSimilarity(bag1, bag2):
-    return len(bag1.intersection(bag2)) / (len(bag1.union(bag2)) + 1)
-
-
-def cosineSimilarity(bag1, bag2):
-    mags = (len(bag1) * len(bag2))**.5
-    return len(bag1.intersection(bag2)) / (mags + 1)
 
 
 def findDuplicate(episode, threshold=0.5):
@@ -54,10 +58,11 @@ def findDuplicate(episode, threshold=0.5):
     Returns a list of all episodes with cosine similarity greather than the given threshold.
     '''
     duplicates = []
-    air_date = db.ArchiveIndex.find_one({'_id': episode['_id']})['metadata']['Datetime_UTC']
+    air_date = episode['metadata']['Datetime_UTC']
     lower_bound = air_date - timedelta(days=4)
 
-    compare_episodes = db.ArchiveIndex.find({
+    fork_db = connect(new=True)
+    compare_episodes = fork_db.CleanEpisodes.find({
         'metadata.Datetime_UTC': {'$lt': air_date, '$gte': lower_bound},
         'metadata.Network': {'$eq': episode['metadata']['Network']},
     }, {
@@ -70,7 +75,8 @@ def findDuplicate(episode, threshold=0.5):
         similarity = cosineSimilarity(current_bag, compare_bag)
         if similarity > threshold:
             duplicates.append(compare_episode['_id'])
-    return duplicates
+    fork_db.Episodes.update_one({'_id': episode['_id']}, {'$set': {'duplicate_of': duplicates}})
+    return len(duplicates)
 
 
 def cleanDuplicates():
@@ -79,14 +85,10 @@ def cleanDuplicates():
     Stores duplicates for each episode in database as an array.
     '''
     query = {'duplicates': {'$exists': False}}
-    total_docs = db.CleanedIndex.count_documents(query)
-    num_dups = 0
-    for i, episode in enumerate(db.CleanedIndex.find(query, {
+    query = {}
+    cursor = db.CleanEpisodes.find(query, {
         '_id': 1,
-        'metadata.Network': 1
-    }).sort('metadata.Datetime_UTC')):
-        print(f' {i}, {i/total_docs:.2%}, num dups found: {num_dups}', end='\r')
-        duplicates = findDuplicate((episode))
-        if duplicates:
-            num_dups += len(duplicates)
-        db.ArchiveIndex.update_one({'_id': episode['_id']}, {'$set': {'duplicate_of': duplicates}})
+        'metadata.Network': 1,
+        'metadata.Datetime_UTC': 1
+    }).sort('metadata.Datetime_UTC')
+    runProcesses(findDuplicate, cursor, max_workers=3)
