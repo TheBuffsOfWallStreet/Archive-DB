@@ -1,5 +1,5 @@
 from Parallel import runProcesses
-from Database import connect
+from Database.Connect import connect
 
 from functools import lru_cache
 from datetime import timedelta
@@ -47,7 +47,7 @@ def getBag(episode_id, n_gram=2):
         cacheMisses[episode_id] = 1
 
     fork_db = connect(new=True)
-    episode = fork_db.ArchiveIndex.find_one({'_id': episode_id}, {'snippets': 1})
+    episode = fork_db.Episodes.find_one({'_id': episode_id}, {'snippets': 1})
     text = ' '.join(x['transcript'] for x in episode['snippets'])
     return nGrams(text, n_gram)
 
@@ -62,7 +62,7 @@ def findDuplicate(episode, threshold=0.5):
     lower_bound = air_date - timedelta(days=4)
 
     fork_db = connect(new=True)
-    compare_episodes = fork_db.ArchiveIndex.find({
+    compare_episodes = fork_db.CleanEpisodes.find({
         'metadata.Datetime_UTC': {'$lt': air_date, '$gte': lower_bound},
         'metadata.Network': {'$eq': episode['metadata']['Network']},
     }, {
@@ -75,7 +75,7 @@ def findDuplicate(episode, threshold=0.5):
         similarity = cosineSimilarity(current_bag, compare_bag)
         if similarity > threshold:
             duplicates.append(compare_episode['_id'])
-    fork_db.ArchiveIndex.update_one({'_id': episode['_id']}, {'$set': {'duplicate_of': duplicates}})
+    fork_db.Episodes.update_one({'_id': episode['_id']}, {'$set': {'duplicate_of': duplicates}})
     return len(duplicates)
 
 
@@ -86,9 +86,7 @@ def cleanDuplicates():
     '''
     query = {'duplicates': {'$exists': False}}
     query = {}
-    total_docs = db.CleanedIndex.count_documents(query)
-    num_dups = 0
-    cursor = db.CleanedIndex.find(query, {
+    cursor = db.CleanEpisodes.find(query, {
         '_id': 1,
         'metadata.Network': 1,
         'metadata.Datetime_UTC': 1

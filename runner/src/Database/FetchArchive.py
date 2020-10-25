@@ -24,7 +24,7 @@ def archiveIndexGenerator(network):
             'cursor': cursor,
         }
 
-        res = requests.get(url, payload, timeout=10)
+        res = requests.get(url, payload, timeout=20)
         assert(res.status_code == 200)
         data = res.json()
         for item in data['items']:
