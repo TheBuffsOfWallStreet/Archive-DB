@@ -10,13 +10,9 @@ docker-compose up
 ```
 This creates a mongo database container and a python runner container.
 
-2. Login to the python runner
+2. Login to the python runner and run your desired function.
 ```
 docker exec -it my_runner /bin/bash
-```
-
-3. Run your desired python function
-```
 my_runner# python3 manage_db.py
 ```
 
