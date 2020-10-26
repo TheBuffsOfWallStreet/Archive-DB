@@ -85,7 +85,6 @@ def cleanDuplicates():
     Stores duplicates for each episode in database as an array.
     '''
     query = {'duplicates': {'$exists': False}}
-    query = {}
     cursor = db.CleanEpisodes.find(query, {
         '_id': 1,
         'metadata.Network': 1,
