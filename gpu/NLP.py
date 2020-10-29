@@ -8,7 +8,7 @@ def getEntities(text, selected_entities={'ORG', 'PERSON'}):
     Use spacy to search for named entities.
     Return only the entity types of intrest.
     '''
-    nlp = sp.load("en_core_web_sm")
+    nlp = sp.load("en_core_web_lg")
     doc = nlp(text)
     entities = {}
     for ent in selected_entities:
