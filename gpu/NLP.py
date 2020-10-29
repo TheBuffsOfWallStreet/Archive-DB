@@ -1,6 +1,7 @@
 import spacy as sp
 
-sp.require_gpu()
+# sp.require_gpu()
+sp.prefer_gpu()
 
 
 def getEntities(text, selected_entities={'ORG', 'PERSON'}):
@@ -8,7 +9,7 @@ def getEntities(text, selected_entities={'ORG', 'PERSON'}):
     Use spacy to search for named entities.
     Return only the entity types of intrest.
     '''
-    nlp = sp.load("en_core_web_lg")
+    nlp = sp.load("en_core_web_sm")
     doc = nlp(text)
     entities = {}
     for ent in selected_entities:

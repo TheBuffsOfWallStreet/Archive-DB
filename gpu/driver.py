@@ -1,14 +1,23 @@
 from Connect import connect
 from NLP import getEntities
 from datetime import datetime
+from Parallel import runProcesses
 
-db = connect()
-start_time = datetime.now()
-for i, episode in enumerate(db.CleanEpisodes.find({}).limit(10)):
-    print(' ' + str(i), end='\r')
+def doThing(episode_id):
+    fork_db = connect(new=True)
+    episode = fork_db.Episodes.find_one({'_id': episode_id}, {'snippets': 1})
     transcript = ' '.join(x['transcript'] for x in episode['snippets'])
     entities = getEntities(transcript)
-end_time = datetime.now()
+    return None
 
-diff = end_time - start_time
-print(diff, i / diff.total_seconds())
+
+if __name__ == '__main__':
+    db = connect()
+    n = 10
+    start_time = datetime.now()
+    ids = [episode['_id'] for episode in db.CleanEpisodes.find({}, {'_id': 1}).limit(n)]
+    runProcesses(doThing, ids)
+    end_time = datetime.now()
+
+    diff = end_time - start_time
+    print(diff, n / diff.total_seconds())
