@@ -52,7 +52,7 @@ def getBag(episode_id, n_gram=2):
     return nGrams(text, n_gram)
 
 
-def findDuplicate(episode, threshold=0.5):
+def findDuplicate(episode, threshold=0.3):
     '''
     Searches all episodes in the 4 days preceding the given episode.
     Returns a list of all episodes with cosine similarity greather than the given threshold.
