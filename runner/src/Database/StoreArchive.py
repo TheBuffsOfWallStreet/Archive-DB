@@ -1,6 +1,7 @@
 from Parallel import runProcesses
 from Database import FetchArchive as fetch
 from Database.Connect import connect
+import pymongo
 
 import os
 import logging
@@ -42,7 +43,8 @@ def buildEpisodes(n=None):
     '''
     num_failed = 0
     num_suceed = 0
-    empty_episodes = db.Episodes.find({'metadata': {'$eq': None}}, {'_id': 1})
+    empty_episodes = db.Episodes.find({'metadata': {'$eq': None}}, {'_id': 1}).sort([("date", pymongo.DESCENDING)])
+
     if n is not None:
         empty_episodes = empty_episodes.limit(n)
 
