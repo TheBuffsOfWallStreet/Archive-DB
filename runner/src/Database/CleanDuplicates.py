@@ -1,5 +1,6 @@
 from Parallel import runProcesses
 from Database.Connect import connect
+import pymongo
 
 from functools import lru_cache
 from datetime import timedelta
@@ -89,5 +90,5 @@ def cleanDuplicates():
         '_id': 1,
         'metadata.Network': 1,
         'metadata.Datetime_UTC': 1
-    }).sort('metadata.Datetime_UTC')
+    }).sort('metadata.Datetime_UTC', pymongo.DESCENDING)
     runProcesses(findDuplicate, cursor, max_workers=3)

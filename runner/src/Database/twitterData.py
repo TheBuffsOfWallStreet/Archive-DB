@@ -6,10 +6,10 @@ from datetime import timedelta
 
 db = MongoClient('db', 27017).WallStreetDB
 stopwords = set(corpus.stopwords.words('english'))
-access_token = "1083264019991916545-pcAji8RopQCXYcQUYcXQMOLrNgvN6E"
-access_token_secret = "IF178rrMYr2mp4c7IBFmJt6O03ASrPooBT6muAD6pZrT1"
-consumer_key = "sDiXv5Nr9QrceEXBL6p4SVkCg"
-consumer_secret = "YzyaZ3UWdcnudnIp2vbJgrW982STAuvYxxo0Tyr1yCJxqoKWu4"
+access_token = ""
+access_token_secret = ""
+consumer_key = ""
+consumer_secret = ""
 
 
 def tokenize(string):
@@ -25,8 +25,7 @@ def get_similarity(xList, yList):
     xSet = set(xList)
     ySet = set(yList)
     intersection = xSet.intersection(ySet)
-    if(len(intersection)>0):
-        print(intersection)
+    if (len(intersection) > 0):
         return list(intersection)
     return None
 
@@ -37,7 +36,7 @@ def searchTweets():
     auth.set_access_token(access_token, access_token_secret)
     api = tw.API(auth, wait_on_rate_limit=True)
     search_words = "#MAGA"
-    date_since = "2020-10-01"
+    date_since = "2020-11-01"
     print("what user's tweets do you want")
     username = input()
     print("how many tweets to download")
@@ -60,10 +59,13 @@ def searchTweets():
                                        }, upsert=True)
 
 
-
-#find similarities in shows before tweets
-def trumpLagFox():
-    tweets = db.Twitter_data.find({'username': 'realDonaldTrump'})
+# find similarities in shows before tweets
+def tweetLagFox():
+    print('Type the username of tweets you want to compare')
+    username = input()
+    tweets = db.Twitter_data.find({'username': username,
+                                  'similarShowsBeforeTweet':{'$exists': False}
+    })
     for tweet in tweets:
 
         # find episodes an hour before trumps tweets
@@ -72,6 +74,7 @@ def trumpLagFox():
         compare_episodes = db.CleanEpisodes.find({
             'metadata.Datetime_UTC': {'$lt': air_date, '$gte': lower_bound},
             'metadata.Network': {'$eq': 'FOX Business'},
+            'duplicate_of': { '$eq': [] }
         })
 
         # find list for similar shows and common phrases
@@ -80,22 +83,25 @@ def trumpLagFox():
             text = ' '.join(x['transcript'] for x in episode['snippets'])
             ySet = tokenize(text)
             common = get_similarity(tweet['bagOfWords'], ySet)
-            if(common !=None):
-                similarities.append((episode['title'],common))
+            if (common != None):
+                similarities.append((episode['title'], common))
 
-            key = {'_id': tweet['_id']}
-            db.Twitter_data.update_one(key,
-                                       {'$set':
-                                           {
-                                               'similarShowsBeforeTweet': similarities
-                                           }
-                                       }, upsert=True)
+        key = {'_id': tweet['_id']}
+        db.Twitter_data.update_one(key,
+                                   {'$set':
+                                       {
+                                            'similarShowsBeforeTweet': similarities
+                                       }
+                                   }, upsert=True)
 
 
-
-#find similarities in shows after tweets
-def trumpLeadFox():
-    tweets = db.Twitter_data.find({'username': 'foxNews'})
+# find similarities in shows after tweets
+def tweetLeadFox():
+    print('Type the username of tweets you want to compare')
+    username = input()
+    tweets = db.Twitter_data.find({'username': username,
+                                   'similarShowsAfterTweet':{'$exists': False}
+                                   })
     for tweet in tweets:
 
         # find episodes an hour after trumps tweets
@@ -104,6 +110,7 @@ def trumpLeadFox():
         compare_episodes = db.CleanEpisodes.find({
             'metadata.Datetime_UTC': {'$lt': upper_bound, '$gte': air_date},
             'metadata.Network': {'$eq': 'FOX Business'},
+            'duplicate_of': { '$eq': [] }
         })
 
         # find list for similar shows and common phrases
@@ -112,19 +119,34 @@ def trumpLeadFox():
             text = ' '.join(x['transcript'] for x in episode['snippets'])
             ySet = tokenize(text)
             common = get_similarity(tweet['bagOfWords'], ySet)
-            if(common !=None):
-                similarities.append((episode['title'],common))
+            if (common != None):
+                similarities.append((episode['title'], common))
 
-            key = {'_id': tweet['_id']}
-            db.Twitter_data.update_one(key,
-                                       {'$set':
-                                           {
-                                               'similarShowsAfterTweet': similarities
-                                           }
-                                       }, upsert=True)
+        key = {'_id': tweet['_id']}
+        db.Twitter_data.update_one(key,
+                                   {'$set':
+                                       {
+                                           'similarShowsAfterTweet': similarities
+                                       }
+                                   }, upsert=True)
 
 
+if __name__ == '__main__':
+    choice = ''
+    while (choice != 'd'):
+        print('What function do you want to run\n'
+              'a) download tweets\n'
+              'b) tweet lead fox\n'
+              'c) tweet lag fox\n'
+              'd) quit')
 
-searchTweets()
-trumpLeadFox()
-
+        choice = input()
+        if (choice == 'a'):
+            searchTweets()
+        elif (choice == 'b'):
+            tweetLeadFox()
+        elif (choice == 'c'):
+            tweetLagFox()
+        else:
+            if (choice != 'd'):
+                print('sorry that was not a valid option')
