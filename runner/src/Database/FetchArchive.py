@@ -24,7 +24,7 @@ def archiveIndexGenerator(network):
             'cursor': cursor,
         }
 
-        res = requests.get(url, payload, timeout=10)
+        res = requests.get(url, payload, timeout=20)
         assert(res.status_code == 200)
         data = res.json()
         for item in data['items']:
@@ -43,7 +43,7 @@ def getEpisode(identifier):
     link = BASE_URL + '/details/' + identifier
     res = requests.get(link, timeout=10)
     assert(res.status_code == 200)
-    page = soup(res.text)
+    page = soup(res.text, 'html.parser')
     segment = {'snippets': [], 'metadata': {}}
     # Fetch snippets
     for column in page.find_all('div', {'class': 'tvcol'}):
