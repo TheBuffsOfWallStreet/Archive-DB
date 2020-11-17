@@ -2,6 +2,7 @@ from Parallel import runProcesses
 from Database.Connect import connect
 
 from functools import lru_cache
+from numba import njit
 from datetime import timedelta
 from nltk import corpus
 from nltk.tokenize import word_tokenize
@@ -12,10 +13,12 @@ db = connect()
 stopwords = set(corpus.stopwords.words('english'))
 
 
+@njit
 def jaccardSimilarity(bag1, bag2):
     return len(bag1.intersection(bag2)) / (len(bag1.union(bag2)) + 1)
 
 
+@njit
 def cosineSimilarity(bag1, bag2):
     mags = (len(bag1) * len(bag2))**.5
     return len(bag1.intersection(bag2)) / (mags + 1)
