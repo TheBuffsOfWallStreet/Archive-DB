@@ -1,0 +1,12 @@
+version: "1.0"
+instances:
+  database:
+    image: ./singularity/database.simg
+    options:
+      - fakeroot
+    volumes:
+      - ./database/data/db:/data/db
+  runner:
+    image: ./singularity/runner.simg
+    volumes:
+      - ./runner/src/:/usr/src/

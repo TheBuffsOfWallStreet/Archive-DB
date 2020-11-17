@@ -1,0 +1,11 @@
+Bootstrap: docker
+From: mongo:4.4
+
+# %runscript
+# echo test
+
+%apprun dog
+echo dogs
+
+%startscript
+mongod

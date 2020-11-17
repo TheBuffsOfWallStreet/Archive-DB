@@ -1,0 +1,10 @@
+Bootstrap: docker
+From: python:3.8.6
+
+%files
+    singularity/requirements.txt /usr
+    singularity/setup_requirements.sh /usr
+
+%post
+    cd usr
+    pip install -r requirements.txt

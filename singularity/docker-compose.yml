@@ -1,0 +1,9 @@
+version: "3.3"
+services:
+  singularity:
+    image: singularityware/singularity
+    container_name: singularity
+    volumes:
+      - ./:/singularity
+    privileged: true
+    entrypoint: sh /singularity/build_singularity.sh
