@@ -1,8 +1,11 @@
 import numpy as np
 import wikipedia
-from sklearn.feature_extraction.text import TfidfVectorizer
-from difflib import SequenceMatcher
 import re
+import requests
+import json
+from bs4 import BeautifulSoup as soup
+from sklearn.feature_extraction.text import TfidfVectorizer
+# from difflib import SequenceMatcher
 
 import NLP
 
@@ -23,8 +26,13 @@ def tfidf_wiki_categories(name, threshold=0.6):
                 key_words.add(words[j])
     return key_words, tags
 
-def get_ceo_wiki(page):
-    text = page.content.lower()
+def get_ceo_from_content(wiki_page):
+    '''
+    NOTE: THIS METHOD IS NOT RELIABLE
+    Takes in a wikipedia page object and returns a list of named entities that could be
+    the CEO of the company in question.
+    '''
+    text = wiki_page.content.lower()
     entities = NLP.getEntities(text, {'PERSON'})
     ceo_idx = []
     for m in re.finditer('(ceo|chief executive officer)', text):
@@ -47,28 +55,34 @@ def get_ceo_wiki(page):
                 match = m
         ceos.add(p_map[match])
     return list(ceos)
+
+def get_info_table_wiki(wiki_page):
+    res = requests.get(wiki_page.url, timeout=5)
+    page = soup(res.text, 'html.parser')
+    table = page.find('table', {'class': 'infobox vcard'})
+    info = {}
+    for row in table.find_all('tr'):
+        th = row.find('th')
+        if th:
+            key = th.text.replace(u'\xa0', ' ')
+            val = None
+            td = row.find('td')
+            if td:
+                if td.find('li'):
+                    val = []
+                    for li in td.find_all('li'):
+                        val.append(li.text.replace(u'\xa0', ' ')) 
+                else:
+                    val = td.text.replace(u'\xa0', ' ')
+            print(key)
+            info[key] = val
+    return info
     
 
+# page = wikipedia.page('Tesla, Inc.', auto_suggest=False)
+# print(get_ceo_from_content(page))
+# print(get_info_table_wiki(page))
 
-page = wikipedia.page('3D Systems', auto_suggest=False)
-print(get_ceo_wiki(page))
-
-# name = input('Name: ')
-# print('Suggestions: ')
-# search = wikipedia.search(name)
-# for i, s in enumerate(search):
-#     print(i, s)
-# choice = int(input('Choice: '))
-# assert(choice in range(len(search)))
-# keywords, tags = tfidf_wiki_categories(search[choice])
-# print()
-# print('Tags: ')
-# print(tags)
-# print()
-# print('Key words: ')
-# print(keywords)
-# p = wikipedia.page('Elon_Musk', auto_suggest=False)
-# print(p.summary)
 with open('firm.names.wiki.csv') as file:
     names = file.readlines()
     matches = 0
