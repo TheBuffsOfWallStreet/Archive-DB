@@ -2,6 +2,9 @@ import numpy as np
 import wikipedia
 from sklearn.feature_extraction.text import TfidfVectorizer
 from difflib import SequenceMatcher
+import re
+
+import NLP
 
 def tfidf_wiki_categories(name, threshold=0.6):
     '''
@@ -20,7 +23,35 @@ def tfidf_wiki_categories(name, threshold=0.6):
                 key_words.add(words[j])
     return key_words, tags
 
+def get_ceo_wiki(page):
+    text = page.content.lower()
+    entities = NLP.getEntities(text, {'PERSON'})
+    ceo_idx = []
+    for m in re.finditer('(ceo|chief executive officer)', text):
+        ceo_idx.append(m.start())
+        ceo_idx.append(m.end())
+    p_map = {}
+    for p in entities['PERSON']:
+        try:
+            for m in re.finditer(p, text):
+                p_map[m.start()] = p
+        except:
+            pass
+    ceos = set()
+    for c in ceo_idx:
+        min_dist = np.inf
+        match = 0
+        for m in p_map:
+            if abs(m-c) < min_dist:
+                min_dist = abs(m-c)
+                match = m
+        ceos.add(p_map[match])
+    return list(ceos)
+    
 
+
+page = wikipedia.page('3D Systems', auto_suggest=False)
+print(get_ceo_wiki(page))
 
 # name = input('Name: ')
 # print('Suggestions: ')
@@ -36,8 +67,8 @@ def tfidf_wiki_categories(name, threshold=0.6):
 # print()
 # print('Key words: ')
 # print(keywords)
-p = wikipedia.page('Elon_Musk', auto_suggest=False)
-print(p.summary)
+# p = wikipedia.page('Elon_Musk', auto_suggest=False)
+# print(p.summary)
 with open('firm.names.wiki.csv') as file:
     names = file.readlines()
     matches = 0
@@ -57,19 +88,24 @@ with open('firm.names.wiki.csv') as file:
             print(i, search)
             if url:
                 try:
+                    match = False
                     page = wikipedia.page(res[0][0], auto_suggest=False)
                     p_url = page.url.split('.org/')[1]
                     if url == p_url:
                         matches += 1
+                        match = True
                     else:
                         search2 = url.replace('wiki/', '')
                         page2 = wikipedia.page(search2, auto_suggest=False)
                         if p_url == page2.url.split('.org/')[1]:
                             matches += 1
+                            match = True
                         else:
                             print(i, search)
                             print(url, p_url)
                             print(res)
+                    if match:
+                        print(get_ceo_wiki(page))
                 except wikipedia.exceptions.DisambiguationError as e:
                     print(i, 'Disambigution Error')
                     dis_errors += 1
