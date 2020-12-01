@@ -90,4 +90,5 @@ def cleanDuplicates():
         'metadata.Network': 1,
         'metadata.Datetime_UTC': 1
     }).sort('metadata.Datetime_UTC')
+    cursor = [x for x in cursor]
     runProcesses(findDuplicate, cursor, max_workers=3)
