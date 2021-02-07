@@ -1,0 +1,5 @@
+version: '3'
+services:
+  downloader:
+    build: .
+    container_name: finlab_downloader
