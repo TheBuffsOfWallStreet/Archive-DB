@@ -1,9 +1,0 @@
-requests
-beautifulsoup4
-spacy
-textblob
-pandas
-pymongo
-numpy
-pytz
-nltk
