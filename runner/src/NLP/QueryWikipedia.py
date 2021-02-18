@@ -4,6 +4,7 @@ import re
 import requests
 import json
 from bs4 import BeautifulSoup as soup
+from bs4 import NavigableString
 from sklearn.feature_extraction.text import TfidfVectorizer
 # from difflib import SequenceMatcher
 
@@ -61,29 +62,32 @@ def get_info_table_wiki(wiki_page):
     page = soup(res.text, 'html.parser')
     table = page.find('table', {'class': 'infobox vcard'})
     info = {}
-    for row in table.find_all('tr'):
-        th = row.find('th')
-        if th:
-            key = th.text.replace(u'\xa0', ' ')
-            val = None
-            td = row.find('td')
-            if td:
-                if td.find('li'):
-                    val = []
-                    for li in td.find_all('li'):
-                        val.append(li.text.replace(u'\xa0', ' ')) 
-                else:
-                    val = td.text.replace(u'\xa0', ' ')
-            print(key)
-            info[key] = val
+    try:
+        for row in table.find_all('tr'):
+            th = row.find('th')
+            if th:
+                key = th.text.replace(u'\xa0', ' ')
+                val = None
+                td = row.find('td')
+                if td:
+                    if td.find('li'):
+                        val = []
+                        for li in td.find_all('li'):
+                            val.append(li.text.replace(u'\xa0', ' ')) 
+                    else:
+                        val = td.text.replace(u'\xa0', ' ')
+                info[key] = val
+    except Exception as e:
+        print(e)
     return info
     
 
-# page = wikipedia.page('Tesla, Inc.', auto_suggest=False)
+page = wikipedia.page('Capital One', auto_suggest=False)
 # print(get_ceo_from_content(page))
-# print(get_info_table_wiki(page))
+print(get_info_table_wiki(page))
 
 with open('firm.names.wiki.csv') as file:
+    data = {}
     names = file.readlines()
     matches = 0
     total = 0
@@ -119,7 +123,7 @@ with open('firm.names.wiki.csv') as file:
                             print(url, p_url)
                             print(res)
                     if match:
-                        print(get_ceo_wiki(page))
+                        data[search] = get_info_table_wiki(page)
                 except wikipedia.exceptions.DisambiguationError as e:
                     print(i, 'Disambigution Error')
                     dis_errors += 1
@@ -133,9 +137,12 @@ with open('firm.names.wiki.csv') as file:
                     page_errors += 1
                     pass
         total += 1
+        # with open('company_info.json', 'w') as out:
+        #         json.dump(data, out, indent=4)
         if i%100 == 0:
             print("Matches: ", matches)
             print("Total: ", total)
+            print(data)
     print("Matches: ", matches)
     print("Total: ", total)
     print("Unknown: ", unknown)
