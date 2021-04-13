@@ -5,16 +5,26 @@ docker,
 docker-compose
 
 1. Build docker containers
+
 ```
+# database/
 docker-compose up
 ```
 This creates a mongo database container and a python runner container.
 
-2. Login to the python runner and run your desired function.
+2. Run worker functions
+
+Remember to configure password and authentication information.
+
 ```
-docker exec -it my_runner /bin/bash
-my_runner:~ $ python3 manage_db.py
+# taskrunners/downloader
+docker-compose up
+
+# taskrunners/cleaner
+docker-compose up
 ```
+
+# TODO: Run docker containers at regular intervals to keep database up to date.
 
 # Contributors
 
