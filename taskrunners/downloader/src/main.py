@@ -118,7 +118,7 @@ def downloadNewEpisodes():
         except Exception as e:
             logger.exception(e)
             num_errors += 1
-    logger.info("Done Downloading. Processed {num_episodes} episodes with {num_errors} erorrs.")
+    logger.info(f"Done Downloading. Processed {num_episodes} episodes with {num_errors} erorrs.")
 
 if __name__ == '__main__':
     db = connect()

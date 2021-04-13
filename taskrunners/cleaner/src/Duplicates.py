@@ -75,9 +75,10 @@ def findDuplicate(episode, threshold=0.3, n_gram=2, n_days=7):
     episode_date = episode['Datetime_UTC']
     lower_bound = episode_date - timedelta(days=n_days)
 
-    compare_episodes = db.CleanEpisodes.find({
+    compare_episodes = db.Episodes.find({
         'Datetime_UTC': {'$lt': episode_date, '$gte': lower_bound},
         'Network': {'$eq': episode['Network']},
+        'is_clean': True
     }, {'_id': 1})
 
     current_bag = getBag(episode['_id'], n_gram)
@@ -106,13 +107,14 @@ def cleanDuplicates(threshold=0.15, n_gram=5, n_days=7):
     Searches all episodes that have not been checked for duplicates.
     Stores duplicates for each episode in database as an array.
     '''
-    query = {'checked_duplicate': False}
-    cursor = db.CleanEpisodes.find(query, {
+    query = {'checked_duplicate': False, 'is_clean': True}
+    cursor = db.Episodes.find(query, {
         '_id': 1,
         'Network': 1,
-        'Datetime_UTC': 1
+        'Datetime_UTC': 1,
     }).sort('Datetime_UTC')
     n_duplicates = 0
+    i = 0
     for i, episode in enumerate(cursor):
         n_matches = findDuplicate(episode, threshold, n_gram, n_days)
         if n_matches > 0:
@@ -120,3 +122,4 @@ def cleanDuplicates(threshold=0.15, n_gram=5, n_days=7):
         if i % 1000 == 0:
             logger.info(f'checked {i} episodes. Found {n_duplicates} duplicates')
     logger.info('Done cleaning for duplicates')
+    logger.info(i)
