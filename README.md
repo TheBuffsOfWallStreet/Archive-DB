@@ -24,7 +24,7 @@ docker-compose up
 docker-compose up
 ```
 
-# TODO: Run docker containers at regular intervals to keep database up to date.
+TODO: Run docker containers at regular intervals to keep database up to date.
 
 # Contributors
 
