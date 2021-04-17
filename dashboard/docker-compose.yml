@@ -1,0 +1,48 @@
+version: "2"
+
+services:
+  grafana:
+    image: grafana/grafana:7.3.7
+    container_name: grafana
+    ports:
+      - 3001:3000
+    user: '472'
+    restart: unless-stopped
+    volumes:
+      - ./grafana:/var/lib/grafana
+ 
+  proxy_server:
+    build: ./Node
+    container_name: mongo_grafana_proxy
+    restart: unless-stopped
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
+    container_name: elastic_search
+    ports:
+      - 9200:9200
+    environment:
+      - ELASTIC_USERNAME=elastic
+      - ELASTIC_PASSWORD=changeme
+      - bootstrap.memory_lock=true
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+    volumes:
+      - ./data:/usr/share/elasticsearch/data
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.10.2
+    container_name: kibana
+    ports:
+      - 5601:5601
+    environment:
+      SERVERNAME: localhost
+      ELASTICSEARCH_URL: http://elastic_search:9200
+      ELASTICSEARCH_HOSTS: http://elastic_search:9200
+      ELASTICSEARCH_USERNAME: elastic
+      ELASTICSEARCH_PASSWORD: changeme
+    volumes:
+     - ./config:/usr/share/kibana/config
+    restart: unless-stopped
+
