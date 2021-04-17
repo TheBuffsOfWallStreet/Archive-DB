@@ -1,0 +1,11 @@
+version: '3'
+services:
+  cleaner:
+    build: .
+    container_name: finlab_cleaner
+  cache:
+    image: memcached:1.6.9
+    container_name: finlab_cleaner_cache
+    ports:
+      - 11211:11211
+    command: 'memcached -m 256'
